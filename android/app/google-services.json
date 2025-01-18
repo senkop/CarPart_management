@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "614001979070",
+    "project_id": "elshaf3y-3dc73",
+    "storage_bucket": "elshaf3y-3dc73.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:614001979070:android:4944bcc2525e5836e5b8ef",
+        "android_client_info": {
+          "package_name": "com.example.elshaf3y_store"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtd0UWH7hMSgE2UUuX2nsE1UbEyF62scY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
