@@ -234,9 +234,9 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     // Load drivers and personal spends when the app starts
+  context.read<SellerCubit>().loadSellers();
     context.read<DriverCubit>().loadDrivers();
     context.read<PersonalSpendCubit>().loadPersonalSpends();
-    context.read<MonthlyRecordCubit>().loadMonthlyRecords();
   }
 
   void _onItemTapped(int index) {
