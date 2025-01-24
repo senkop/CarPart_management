@@ -22,6 +22,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:elshaf3y_store/data/repositories/seller_repository.dart';
 import 'package:elshaf3y_store/domain/use_cases/update_car_part_use_case.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -47,7 +48,7 @@ void main() async {
   final sellerRepository = SellerRepository();
   final driverRepository = DriverRepository();
   final personalSpendRepository = PersonalSpendRepository();
-  final monthlyRecordRepository = MonthlyRecordRepository(sharedPreferences);
+  final monthlyRecordRepository = MonthlyGainsRepository();
   final getSellersUseCase = GetSellersUseCase(sellerRepository);
   final addSellerUseCase = AddSellerUseCase(sellerRepository);
   final addCarPartUseCase = AddCarPartUseCase(sellerRepository);
@@ -194,7 +195,11 @@ class MyApp extends StatelessWidget {
       ],
       child: BlocBuilder<LanguageCubit, Locale>(
         builder: (context, locale) {
-          return MaterialApp(
+            return ScreenUtilInit(
+            designSize: const Size(360, 690),
+            minTextAdapt: true,
+            splitScreenMode: true,
+         child:   MaterialApp(
             debugShowCheckedModeBanner: false,
             color: Colors.white,
             title: 'Store Management',
@@ -205,7 +210,7 @@ class MyApp extends StatelessWidget {
             supportedLocales: context.supportedLocales,
             localizationsDelegates: context.localizationDelegates,
             home: MainScreen(),
-          );
+            ));
         },
       ),
     );
@@ -234,7 +239,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     // Load drivers and personal spends when the app starts
-  context.read<SellerCubit>().loadSellers();
+    context.read<SellerCubit>().loadSellers();
     context.read<DriverCubit>().loadDrivers();
     context.read<PersonalSpendCubit>().loadPersonalSpends();
   }
@@ -244,7 +249,7 @@ class _MainScreenState extends State<MainScreen> {
       _selectedIndex = index;
     });
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String?>(
@@ -255,20 +260,38 @@ class _MainScreenState extends State<MainScreen> {
         } else if (snapshot.hasData) {
           // User is logged in, show the app's main content
           return Scaffold(
-            body: _widgetOptions.elementAt(_selectedIndex),
+            body: IndexedStack(
+              index: _selectedIndex,
+              children: _widgetOptions,
+            ),
             bottomNavigationBar: BottomNavigationBar(
-              items: const <BottomNavigationBarItem>[
+              items: [
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.store),
-                  label: 'Sellers',
+                  icon: CustomNavItem(
+                    icon: Icons.store,
+                    label: 'Sellers',
+                    isSelected: _selectedIndex == 0,
+                    onTap: () => _onItemTapped(0),
+                  ),
+                  label: '',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.directions_car),
-                  label: 'Drivers',
+                  icon: CustomNavItem(
+                    icon: Icons.directions_car,
+                    label: 'Drivers',
+                    isSelected: _selectedIndex == 1,
+                    onTap: () => _onItemTapped(1),
+                  ),
+                  label: '',
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.account_balance_wallet),
-                  label: 'Personal',
+                  icon: CustomNavItem(
+                    icon: Icons.account_balance_wallet,
+                    label: 'Personal',
+                    isSelected: _selectedIndex == 2,
+                    onTap: () => _onItemTapped(2),
+                  ),
+                  label: '',
                 ),
               ],
               currentIndex: _selectedIndex,
@@ -278,9 +301,65 @@ class _MainScreenState extends State<MainScreen> {
           );
         } else {
           // User is not logged in, show the authentication screen
-          return AuthScreen();  // Your login screen
+          return LoginScreen();  // Your login screen
         }
       },
+    );
+  }
+}
+
+class CustomNavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const CustomNavItem({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: isSelected ? 64 : 40,
+            height: isSelected ? 32 : 40,
+            decoration: ShapeDecoration(
+              color: isSelected ? const Color(0xFFF2F2F2) : Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                size: 24,
+                color: isSelected ? Colors.black : Colors.black54,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected
+                  ? const Color(0xFF191C1F)
+                  : const Color(0xFF4D4D4D),
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 }

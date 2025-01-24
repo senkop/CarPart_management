@@ -3,7 +3,8 @@ import 'package:elshaf3y_store/features/seller_feature/data/models/monthly_recor
 import 'package:elshaf3y_store/features/seller_feature/domain/use_cases/clear_monthly_records.dart';
 import 'package:elshaf3y_store/features/seller_feature/domain/use_cases/get_monthly_rocords_usecase.dart';
 import 'package:elshaf3y_store/features/seller_feature/domain/use_cases/monthly_record_usecase.dart';
-import 'package:elshaf3y_store/presentation/cubit/monthly_records_state.dart';
+import 'package:elshaf3y_store/presentation/cubit/monthly_records_state.dart';// filepath: /c:/Users/eslam/OneDrive/Desktop/el-shafee-store/elshaf3y_store/lib/presentation/cubit/monthly_records_cubit.dart
+
 class MonthlyRecordCubit extends Cubit<MonthlyRecordState> {
   final GetMonthlyRecordsUseCase getMonthlyRecordsUseCase;
   final AddMonthlyRecordUseCase addMonthlyRecordUseCase;
@@ -25,7 +26,7 @@ class MonthlyRecordCubit extends Cubit<MonthlyRecordState> {
     }
   }
 
-  Future<void> addMonthlyRecord(MonthlyRecord record) async {
+  Future<void> addMonthlyRecord(MonthlyGains record) async {
     await addMonthlyRecordUseCase(record);
     loadMonthlyRecords();
   }

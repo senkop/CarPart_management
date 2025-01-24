@@ -1,19 +1,27 @@
-class MonthlyRecord {
-  final String month;
-  final double totalGain;
+class MonthlyGains {
+  final int month;
+  final int year;
+  final double netGain;
 
-  MonthlyRecord({
+  MonthlyGains({
     required this.month,
-    required this.totalGain,
+    required this.year,
+    required this.netGain,
   });
 
-  Map<String, dynamic> toJson() => {
-        'month': month,
-        'totalGain': totalGain,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'month': month,
+      'year': year,
+      'netGain': netGain,
+    };
+  }
 
-  factory MonthlyRecord.fromJson(Map<String, dynamic> json) => MonthlyRecord(
-        month: json['month'],
-        totalGain: json['totalGain'],
-      );
+  factory MonthlyGains.fromJson(Map<String, dynamic> json) {
+    return MonthlyGains(
+      month: json['month'],
+      year: json['year'],
+      netGain: json['netGain'],
+    );
+  }
 }

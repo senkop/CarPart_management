@@ -1,5 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:elshaf3y_store/auth.dart';
+import 'package:elshaf3y_store/features/seller_feature/data/models/monthly_record_model.dart';
+import 'package:elshaf3y_store/features/seller_feature/data/repositories/monthly_record_repo.dart';
 import 'package:elshaf3y_store/presentation/cubit/driver_cubit.dart';
 import 'package:elshaf3y_store/presentation/cubit/driver_state.dart';
 import 'package:elshaf3y_store/presentation/cubit/personal_cubit.dart';
@@ -23,7 +25,8 @@ class SellerScreen extends StatelessWidget {
   String? selectedSellerId;
   final AuthService _authService = AuthService();
 
-  
+    final MonthlyGainsRepository _monthlyGainsRepository = MonthlyGainsRepository();
+
   List<Map<String, dynamic>> calculateMonthlyGains(SellerState sellerState, BuildContext context) {
     if (sellerState is! SellerLoaded) return [];
     List<Map<String, dynamic>> monthlyGains = [];
@@ -49,6 +52,10 @@ class SellerScreen extends StatelessWidget {
 
       final netGain = totalGain - totalDriverCost - totalPersonalPaid;
       monthlyGains.add({'month': month, 'year': currentYear, 'netGain': netGain});
+
+      // Save monthly gains to Firebase
+      final monthlyGainsData = MonthlyGains(month: month, year: currentYear, netGain: netGain);
+      _monthlyGainsRepository.saveMonthlyGains(monthlyGainsData);
     }
     return monthlyGains;
   }
@@ -68,7 +75,7 @@ class SellerScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => MonthlyGainsScreen(monthlyGains: monthlyGains),
+                      builder: (context) => MonthlyGainsScreen(),
                     ),
                   );
                 },
@@ -95,7 +102,7 @@ class SellerScreen extends StatelessWidget {
               // Navigate back to the AuthScreen after logout
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => AuthScreen()),
+                MaterialPageRoute(builder: (context) => LoginScreen()),
               );
             },
           ),
@@ -313,33 +320,47 @@ class SellerScreen extends StatelessWidget {
 }
 
 
-class MonthlyGainsScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> monthlyGains;
 
-  const MonthlyGainsScreen({super.key, required this.monthlyGains});
+class MonthlyGainsScreen extends StatelessWidget {
+  final MonthlyGainsRepository _monthlyGainsRepository = MonthlyGainsRepository();
 
   @override
   Widget build(BuildContext context) {
-    final currentMonth = DateTime.now().month;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Monthly Gains'),
       ),
-      body: ListView.builder(
-        itemCount: monthlyGains.where((gain) => gain['month'] <= currentMonth).length,
-        itemBuilder: (context, index) {
-          final gain = monthlyGains.where((gain) => gain['month'] <= currentMonth).toList()[index];
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            padding: const EdgeInsets.all(8.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            child: ListTile(
-              leading: const Icon(Icons.monetization_on, color: Colors.green),
-              title: Text('${DateFormat.MMMM().format(DateTime(0, gain['month']))} ${gain['year']}: \$${gain['netGain'].toStringAsFixed(2)}'),
-            ),
+      body: FutureBuilder<List<MonthlyGains>>(
+        future: _monthlyGainsRepository.getAllMonthlyGains(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No monthly gains found.'));
+          }
+
+          final monthlyGains = snapshot.data!;
+          final currentMonth = DateTime.now().month;
+
+          return ListView.builder(
+            itemCount: monthlyGains.where((gain) => gain.month <= currentMonth).length,
+            itemBuilder: (context, index) {
+              final gain = monthlyGains.where((gain) => gain.month <= currentMonth).toList()[index];
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                padding: const EdgeInsets.all(8.0),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.monetization_on, color: Colors.green),
+                  title: Text('${DateFormat.MMMM().format(DateTime(0, gain.month))} ${gain.year}: \$${gain.netGain.toStringAsFixed(2)}'),
+                ),
+              );
+            },
           );
         },
       ),

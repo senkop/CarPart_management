@@ -1,27 +1,40 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/monthly_record_model.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
-class MonthlyRecordRepository {
-  final SharedPreferences sharedPreferences;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-  MonthlyRecordRepository(this.sharedPreferences);
+class MonthlyGainsRepository {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<List<MonthlyRecord>> getMonthlyRecords() async {
-    final recordsString = sharedPreferences.getString('monthlyRecords');
-    if (recordsString != null) {
-      List<dynamic> recordsJson = json.decode(recordsString);
-      return recordsJson.map((json) => MonthlyRecord.fromJson(json)).toList();
+  // Collection Reference
+  CollectionReference get _monthlyGains => _firestore.collection('monthlyGains');
+
+  Future<void> saveMonthlyGains(MonthlyGains gains) async {
+    await _monthlyGains
+        .doc('${gains.year}_${gains.month}')
+        .set(gains.toJson());
+  }
+
+  Future<MonthlyGains?> getMonthlyGains(int year, int month) async {
+    final doc = await _monthlyGains.doc('${year}_${month}').get();
+    return doc.exists ? MonthlyGains.fromJson(doc.data() as Map<String, dynamic>) : null;
+  }
+
+  Future<List<MonthlyGains>> getAllMonthlyGains() async {
+    final snapshot = await _monthlyGains.get();
+    return snapshot.docs
+        .map((doc) => MonthlyGains.fromJson(doc.data() as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> deleteMonthlyGains(int year, int month) async {
+    await _monthlyGains.doc('${year}_${month}').delete();
+  }
+
+  Future<void> clearAllMonthlyGains() async {
+    final snapshot = await _monthlyGains.get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
     }
-    return [];
-  }
-
-  Future<void> saveMonthlyRecords(List<MonthlyRecord> records) async {
-    final recordsJson = records.map((record) => record.toJson()).toList();
-    await sharedPreferences.setString('monthlyRecords', json.encode(recordsJson));
-  }
-
-  Future<void> clearMonthlyRecords() async {
-    await sharedPreferences.remove('monthlyRecords');
   }
 }
