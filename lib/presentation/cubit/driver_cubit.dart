@@ -119,4 +119,36 @@ class DriverCubit extends Cubit<DriverState> {
       emit(DriverLoaded(updatedDrivers));
     }
   }
+  void sortDriversByTotalTrips() {
+    if (state is DriverLoaded) {
+      final drivers = (state as DriverLoaded).drivers;
+      drivers.sort((a, b) => b.getTotalTrips().compareTo(a.getTotalTrips()));
+      emit(DriverLoaded(List.from(drivers)));
+    }
+  }
+
+  void sortDriversByTotalCost() {
+    if (state is DriverLoaded) {
+      final drivers = (state as DriverLoaded).drivers;
+      drivers.sort((a, b) => b.getTotalCost().compareTo(a.getTotalCost()));
+      emit(DriverLoaded(List.from(drivers)));
+    }
+  }
+void sortTripsByCost(String driverId) {
+  if (state is DriverLoaded) {
+    final drivers = (state as DriverLoaded).drivers;
+    final driver = drivers.firstWhere((d) => d.id == driverId);
+    driver.trips.sort((a, b) => b.cost.compareTo(a.cost));
+    emit(DriverLoaded(List.from(drivers)));
+  }
 }
+
+void sortTripsByDate(String driverId) {
+  if (state is DriverLoaded) {
+    final drivers = (state as DriverLoaded).drivers;
+    final driver = drivers.firstWhere((d) => d.id == driverId);
+    driver.trips.sort((a, b) => b.date.compareTo(a.date));
+    emit(DriverLoaded(List.from(drivers)));
+  }
+}
+  }

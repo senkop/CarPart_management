@@ -7,6 +7,7 @@ import 'package:elshaf3y_store/presentation/cubit/driver_state.dart';
 import 'package:elshaf3y_store/presentation/cubit/personal_cubit.dart';
 import 'package:elshaf3y_store/presentation/cubit/personal_state.dart';
 import 'package:elshaf3y_store/presentation/screens/login_screen.dart';
+import 'package:elshaf3y_store/presentation/screens/monthly_gain_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:elshaf3y_store/presentation/cubit/language_cubit.dart';
@@ -14,18 +15,26 @@ import 'package:elshaf3y_store/presentation/cubit/seller_cubit.dart';
 
 import 'package:elshaf3y_store/features/seller_feature/data/models/seller_model.dart';
 import 'package:elshaf3y_store/features/car_parts_feature/data/models/car_parts_model.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:uuid/uuid.dart';
-import 'package:elshaf3y_store/presentation/screens/seller_detail_screen.dart';
-class SellerScreen extends StatelessWidget {
+import 'package:elshaf3y_store/presentation/screens/seller_detail_screen.dart';class SellerScreen extends StatefulWidget {
   final TextEditingController sellerNameController = TextEditingController();
   final TextEditingController carPartNameController = TextEditingController();
   final TextEditingController carPartPriceController = TextEditingController();
   final TextEditingController carPartDescriptionController = TextEditingController();
   final TextEditingController carPartQuantityController = TextEditingController();
-  String? selectedSellerId;
+  final String? selectedSellerId;
   final AuthService _authService = AuthService();
+  final MonthlyGainsRepository _monthlyGainsRepository = MonthlyGainsRepository();
 
-    final MonthlyGainsRepository _monthlyGainsRepository = MonthlyGainsRepository();
+  SellerScreen({super.key, this.selectedSellerId});
+
+  @override
+  _SellerScreenState createState() => _SellerScreenState();
+}
+
+class _SellerScreenState extends State<SellerScreen> {
+  bool isGridView = false;
 
   List<Map<String, dynamic>> calculateMonthlyGains(SellerState sellerState, BuildContext context) {
     if (sellerState is! SellerLoaded) return [];
@@ -55,7 +64,7 @@ class SellerScreen extends StatelessWidget {
 
       // Save monthly gains to Firebase
       final monthlyGainsData = MonthlyGains(month: month, year: currentYear, netGain: netGain);
-      _monthlyGainsRepository.saveMonthlyGains(monthlyGainsData);
+      widget._monthlyGainsRepository.saveMonthlyGains(monthlyGainsData);
     }
     return monthlyGains;
   }
@@ -63,133 +72,275 @@ class SellerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: BlocBuilder<SellerCubit, SellerState>(
-          builder: (context, sellerState) {
-            if (sellerState is SellerLoaded) {
-              final monthlyGains = calculateMonthlyGains(sellerState, context);
-              final currentMonth = DateTime.now().month;
-              final currentMonthGain = monthlyGains.firstWhere((gain) => gain['month'] == currentMonth)['netGain'];
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MonthlyGainsScreen(),
-                    ),
-                  );
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Net Monthly Gain:'),
-                    Text('${DateFormat.MMMM().format(DateTime(0, currentMonth))} ${DateTime.now().year}: \$${currentMonthGain.toStringAsFixed(2)}'),
-                  ],
+      backgroundColor: Colors.white,
+     appBar: AppBar(
+  backgroundColor: Colors.white,
+  title: Center(
+    child: BlocBuilder<SellerCubit, SellerState>(
+      builder: (context, sellerState) {
+        if (sellerState is SellerLoaded) {
+          final monthlyGains = calculateMonthlyGains(sellerState, context);
+          final currentMonth = DateTime.now().month;
+          final currentMonthGain = monthlyGains.firstWhere((gain) => gain['month'] == currentMonth)['netGain'];
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MonthlyGainsScreen(),
                 ),
               );
-            }
-            return Text('Sellers');
-          },
-        ),
-      
-         actions: [
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              // Call the logout method from AuthService
-              await _authService.logout();
-
-              // Navigate back to the AuthScreen after logout
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => LoginScreen()),
-              );
             },
-          ),
-        ],
-      ),
-      body: BlocConsumer<SellerCubit, SellerState>(
-        listener: (context, state) {
-          if (state is SellerLoaded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Sellers updated').tr()),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state is SellerLoading) {
-            return Center(child: CircularProgressIndicator());
-          } else if (state is SellerLoaded) {
-            return ListView.builder(
-              itemCount: state.sellers.length,
-              itemBuilder: (context, index) {
-                final seller = state.sellers[index];
-                return Container(
-                  margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  padding: EdgeInsets.all(8.0),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(10.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'Net Monthly Gain:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${DateFormat.MMMM().format(DateTime(0, currentMonth))} ${DateTime.now().year}: \$${currentMonthGain.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey),
+                ),
+          
+              ],
+            ),
+          );
+        }
+        return const Text('Sellers');
+      },
+    ),
+  ),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.logout),
+      onPressed: () async {
+        await widget._authService.logout();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      },
+    ),
+  ],
+),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    _showAddSellerDialog(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.black, backgroundColor: Colors.white,
+                    side: BorderSide(color: Colors.black),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
                   ),
-                  child: ListTile(
-                    leading: Icon(Icons.person, color: Colors.blue),
-                    title: Text(seller.name, style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}').tr(namedArgs: {'amount': seller.getTotalOwed().toStringAsFixed(2)}),
-                        Text('Monthly Gain: \$${seller.getMonthlyGain().toStringAsFixed(2)}'), // Use getMonthlyGain method
-                      ],
+                  child: const Text('Add Seller'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _showSortOptionsDialog(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                                  foregroundColor: Colors.black, backgroundColor: Colors.white,
+
+                    side: BorderSide(color: Colors.black),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
                     ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            seller.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                            color: seller.isPinned ? Colors.orange : Colors.grey,
-                          ),
-                          onPressed: () {
-                            context.read<SellerCubit>().togglePinSeller(seller);
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.edit, color: Colors.orange),
-                          onPressed: () {
-                            _showEditSellerDialog(context, seller);
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete, color: Colors.red),
-                          onPressed: () {
-                            _showDeleteSellerDialog(context, seller.id);
-                          },
-                        ),
-                      ],
+                  ),
+                  child: const Text('Sort'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      isGridView = !isGridView;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                                    foregroundColor: Colors.black, backgroundColor: Colors.white,
+
+                    side: BorderSide(color: Colors.black),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
                     ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SellerDetailScreen(seller: seller),
-                        ),
-                      );
+                  ),
+                  child: const Text('Grid View'),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: BlocConsumer<SellerCubit, SellerState>(
+              listener: (context, state) {
+                if (state is SellerLoaded) {
+                  // ScaffoldMessenger.of(context).showSnackBar(
+                  //   SnackBar(content: const Text('Sellers updated').tr()),
+                  // );
+                }
+              },
+              builder: (context, state) {
+                if (state is SellerLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (state is SellerLoaded) {
+                  return isGridView
+                      ? Padding(
+                        padding:  EdgeInsets.all(20.sp),
+                        child: GridView.builder(
+  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    crossAxisCount: 2,
+    childAspectRatio: 2 / 3,
+    crossAxisSpacing: 10,
+    mainAxisSpacing: 10,
+  ),
+  itemCount: state.sellers.length,
+  itemBuilder: (context, index) {
+    final seller = state.sellers[index];
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SellerDetailScreen(seller: seller),
+          ),
+        );
+      },
+      child: Card(
+        color: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: Colors.grey, width: 1),
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(0.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Hero(
+                tag: 'seller_${seller.id}',
+                child: const Icon(Icons.person, size: 50, color: Colors.blue),
+              ),
+              const SizedBox(height: 30),
+              Text(
+                seller.name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 5),
+              Text('Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}'),
+              Text('Monthly Gain: \$${seller.getMonthlyGain().toStringAsFixed(2)}'),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      seller.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                      color: seller.isPinned ? Colors.orange : Colors.grey,
+                    ),
+                    onPressed: () {
+                      context.read<SellerCubit>().togglePinSeller(seller);
                     },
                   ),
-                );
-              },
-            );
-          } else if (state is SellerError) {
-            return Center(child: Text('Error: ${state.message}'));
-          }
-          return Center(child: Text('No sellers found').tr());
-        },
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.orange),
+                    onPressed: () {
+                      _showEditSellerDialog(context, seller);
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      _showDeleteSellerDialog(context, seller.id);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showAddSellerDialog(context);
-        },
-        child: Icon(Icons.add),
+    );
+  },
+),
+                      )
+                      : ListView.builder(
+                          itemCount: state.sellers.length,
+                          itemBuilder: (context, index) {
+                            final seller = state.sellers[index];
+                            return Container(
+                              margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                              padding: const EdgeInsets.all(8.0),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: ListTile(
+                                leading: Hero(
+                                  tag: 'seller_${seller.id}',
+                                  child: const Icon(Icons.person, color: Colors.blue),
+                                ),
+                                title: Text(seller.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}').tr(namedArgs: {'amount': seller.getTotalOwed().toStringAsFixed(2)}),
+                                    Text('Monthly Gain: \$${seller.getMonthlyGain().toStringAsFixed(2)}'),
+                                  ],
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        seller.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                                        color: seller.isPinned ? Colors.orange : Colors.grey,
+                                      ),
+                                      onPressed: () {
+                                        context.read<SellerCubit>().togglePinSeller(seller);
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, color: Colors.orange),
+                                      onPressed: () {
+                                        _showEditSellerDialog(context, seller);
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () {
+                                        _showDeleteSellerDialog(context, seller.id);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => SellerDetailScreen(seller: seller),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        );
+                } else if (state is SellerError) {
+                  return Center(child: Text('Error: ${state.message}'));
+                }
+                return Center(child: const Text('No sellers found').tr());
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -199,21 +350,21 @@ class SellerScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Delete Seller').tr(),
-          content: Text('Are you sure you want to delete this seller?').tr(),
+          title: const Text('Delete Seller').tr(),
+          content: const Text('Are you sure you want to delete this seller?').tr(),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel').tr(),
+              child: const Text('Cancel').tr(),
             ),
             TextButton(
               onPressed: () {
                 context.read<SellerCubit>().deleteSeller(sellerId);
                 Navigator.of(context).pop();
               },
-              child: Text('Delete').tr(),
+              child: const Text('Delete').tr(),
             ),
           ],
         );
@@ -226,9 +377,11 @@ class SellerScreen extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Add New Seller').tr(),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          title: const Text('Add New Seller').tr(),
           content: TextField(
-            controller: sellerNameController,
+            controller: widget.sellerNameController,
             decoration: InputDecoration(labelText: 'Seller Name'.tr()),
           ),
           actions: [
@@ -236,12 +389,12 @@ class SellerScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel').tr(),
+              child: const Text('Cancel').tr(),
             ),
             TextButton(
               onPressed: () {
-                final sellerId = Uuid().v4();
-                final sellerName = sellerNameController.text;
+                final sellerId = const Uuid().v4();
+                final sellerName = widget.sellerNameController.text;
 
                 final seller = Seller(
                   id: sellerId,
@@ -253,11 +406,11 @@ class SellerScreen extends StatelessWidget {
 
                 context.read<SellerCubit>().addSeller(seller);
 
-                sellerNameController.clear();
+                widget.sellerNameController.clear();
 
                 Navigator.of(context).pop();
               },
-              child: Text('Add').tr(),
+              child: const Text('Add').tr(),
             ),
           ],
         );
@@ -266,34 +419,29 @@ class SellerScreen extends StatelessWidget {
   }
 
   void _showEditSellerDialog(BuildContext context, Seller seller) {
-    sellerNameController.text = seller.name;
+    widget.sellerNameController.text = seller.name;
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Edit Seller').tr(),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: sellerNameController,
-                decoration: InputDecoration(labelText: 'Seller Name'.tr()),
-              ),
-            ],
+          title: const Text('Edit Seller').tr(),
+          content: TextField(
+            controller: widget.sellerNameController,
+            decoration: InputDecoration(labelText: 'Seller Name'.tr()),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancel').tr(),
+              child: const Text('Cancel').tr(),
             ),
             TextButton(
               onPressed: () {
-                final sellerName = sellerNameController.text;
+                final sellerName = widget.sellerNameController.text;
 
-                final updatedSeller = Seller(
+ final updatedSeller = Seller(
                   id: seller.id,
                   name: sellerName,
                   carParts: seller.carParts,
@@ -303,67 +451,68 @@ class SellerScreen extends StatelessWidget {
 
                   phone: seller.phone
                 );
-
                 context.read<SellerCubit>().updateSeller(updatedSeller);
 
-                sellerNameController.clear();
+                widget.sellerNameController.clear();
 
                 Navigator.of(context).pop();
               },
-              child: Text('Save').tr(),
+              child: const Text('Save').tr(),
             ),
           ],
         );
       },
     );
   }
-}
-
-
-
-class MonthlyGainsScreen extends StatelessWidget {
-  final MonthlyGainsRepository _monthlyGainsRepository = MonthlyGainsRepository();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Monthly Gains'),
-      ),
-      body: FutureBuilder<List<MonthlyGains>>(
-        future: _monthlyGainsRepository.getAllMonthlyGains(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No monthly gains found.'));
-          }
-
-          final monthlyGains = snapshot.data!;
-          final currentMonth = DateTime.now().month;
-
-          return ListView.builder(
-            itemCount: monthlyGains.where((gain) => gain.month <= currentMonth).length,
-            itemBuilder: (context, index) {
-              final gain = monthlyGains.where((gain) => gain.month <= currentMonth).toList()[index];
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                child: ListTile(
-                  leading: const Icon(Icons.monetization_on, color: Colors.green),
-                  title: Text('${DateFormat.MMMM().format(DateTime(0, gain.month))} ${gain.year}: \$${gain.netGain.toStringAsFixed(2)}'),
-                ),
-              );
+  
+void _showSortOptionsDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        title: const Text('Sort Options').tr(),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('By Amount Owed').tr(),
+              onTap: () {
+                _sortByAmountOwed();
+                Navigator.of(context).pop();
+              },
+            ),
+            ListTile(
+              title: const Text('By Gains').tr(),
+              onTap: () {
+                _sortByGains();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
             },
-          );
-        },
-      ),
-    );
-  }
+            child: const Text('Cancel').tr(),
+          ),
+        ],
+      );
+    },
+  );
 }
+
+void _sortByAmountOwed() {
+  setState(() {
+    context.read<SellerCubit>().sortSellersByAmountOwed();
+  });
+}
+
+void _sortByGains() {
+  setState(() {
+    context.read<SellerCubit>().sortSellersByGains();
+  });
+}}

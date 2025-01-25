@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:intl/intl.dart';
 import 'package:elshaf3y_store/features/car_parts_feature/data/models/car_parts_model.dart';
 
 class PaymentDetailsScreen extends StatelessWidget {
@@ -11,7 +10,10 @@ class PaymentDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white ,
       appBar: AppBar(
+              backgroundColor: Colors.white ,
+
         title: const Text('Payment Details').tr(),
       ),
       body: carPart.payments.isEmpty

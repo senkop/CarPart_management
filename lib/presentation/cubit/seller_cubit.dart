@@ -132,14 +132,7 @@ class SellerCubit extends Cubit<SellerState> {
       emit(SellerLoaded(sellers));
     }
   }
-  Future<void> sortCarPartsByAmountOwed(String sellerId) async {
-  if (state is SellerLoaded) {
-    final sellers = (state as SellerLoaded).sellers;
-    final seller = sellers.firstWhere((s) => s.id == sellerId);
-    seller.carParts.sort((a, b) => b.amountOwed.compareTo(a.amountOwed));
-    emit(SellerLoaded(sellers));
-  }
-}
+
     Future<void> addPaymentToCarPart(String sellerId, String carPartId, Payment payment) async {
     if (state is SellerLoaded) {
       final sellers = (state as SellerLoaded).sellers;
@@ -147,6 +140,41 @@ class SellerCubit extends Cubit<SellerState> {
       final carPart = seller.carParts.firstWhere((cp) => cp.id == carPartId);
       carPart.payments.add(payment);
       await updateSellerUseCase(seller);
+      emit(SellerLoaded(sellers));
+    }
+  }
+    void sortSellersByAmountOwed() {
+    if (state is SellerLoaded) {
+      final sellers = (state as SellerLoaded).sellers;
+      sellers.sort((a, b) => b.getTotalOwed().compareTo(a.getTotalOwed()));
+      emit(SellerLoaded(sellers));
+    }
+
+}
+Future<void> sortCarPartsByAmountOwed(String sellerId) async {
+  if (state is SellerLoaded) {
+    final sellers = (state as SellerLoaded).sellers;
+    final seller = sellers.firstWhere((s) => s.id == sellerId);
+    
+    // Debug print before sorting
+    print("Before sorting by amount owed:");
+    seller.carParts.forEach((carPart) => print("${carPart.name}: ${carPart.amountOwed}"));
+
+    seller.carParts.sort((a, b) => a.amountOwed.compareTo(b.amountOwed));
+    
+    // Debug print after sorting
+    print("After sorting by amount owed:");
+    seller.carParts.forEach((carPart) => print("${carPart.name}: ${carPart.amountOwed}"));
+
+    // Create a new list to trigger UI update
+    final updatedSellers = sellers.map((s) => s.id == sellerId ? seller : s).toList();
+    emit(SellerLoaded(updatedSellers));
+  }
+}
+  void sortSellersByGains() {
+    if (state is SellerLoaded) {
+      final sellers = (state as SellerLoaded).sellers;
+      sellers.sort((a, b) => b.getMonthlyGain().compareTo(a.getMonthlyGain()));
       emit(SellerLoaded(sellers));
     }
   }

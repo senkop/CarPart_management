@@ -364,7 +364,7 @@ final String? robotoFont = GoogleFonts.roboto().fontFamily;
     if (user != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MainScreen()),
+        MaterialPageRoute(builder: (context) => const MainScreen()),
       );
     }
   }
@@ -669,7 +669,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (user != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MainScreen()),
+        MaterialPageRoute(builder: (context) => const MainScreen()),
       );
     }
   }

@@ -41,6 +41,7 @@ class Seller {
       'monthlyGain': monthlyGain,
       'phone': phone,
     };
+
   }
 
   double getTotalOwed() {
@@ -56,5 +57,21 @@ class Seller {
       }
       return sum;
     });
+  }
+   Seller copyWith({
+    List<CarPart>? carParts,
+      
+  }) {
+    return Seller(
+      id: this.id,
+      name: this.name,
+      carParts: carParts ?? this.carParts,
+      pin: this.pin,
+      isPinned: this.isPinned,
+      monthlyGain: this.monthlyGain,
+      phone: this.phone,
+
+      // other fields...
+    );
   }
 }

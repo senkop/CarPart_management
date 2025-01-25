@@ -16,7 +16,7 @@ class MonthlyGainsRepository {
   }
 
   Future<MonthlyGains?> getMonthlyGains(int year, int month) async {
-    final doc = await _monthlyGains.doc('${year}_${month}').get();
+    final doc = await _monthlyGains.doc('${year}_$month').get();
     return doc.exists ? MonthlyGains.fromJson(doc.data() as Map<String, dynamic>) : null;
   }
 
@@ -28,7 +28,7 @@ class MonthlyGainsRepository {
   }
 
   Future<void> deleteMonthlyGains(int year, int month) async {
-    await _monthlyGains.doc('${year}_${month}').delete();
+    await _monthlyGains.doc('${year}_$month').delete();
   }
 
   Future<void> clearAllMonthlyGains() async {

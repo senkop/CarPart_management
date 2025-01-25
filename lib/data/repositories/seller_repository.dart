@@ -106,7 +106,7 @@ class SellerRepository {
         .where('sellerId', isEqualTo: sellerId)
         .get();
     return snapshot.docs
-        .map((doc) => model.Transaction.fromJson(doc.data() as Map<String, dynamic>))
+        .map((doc) => model.Transaction.fromJson(doc.data()))
         .toList();
   }
 }

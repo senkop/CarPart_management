@@ -209,7 +209,7 @@ class MyApp extends StatelessWidget {
             locale: context.locale,
             supportedLocales: context.supportedLocales,
             localizationsDelegates: context.localizationDelegates,
-            home: MainScreen(),
+            home: const MainScreen(),
             ));
         },
       ),
@@ -256,15 +256,18 @@ class _MainScreenState extends State<MainScreen> {
       future: _authService.getToken(),  // Firebase authentication token check
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         } else if (snapshot.hasData) {
           // User is logged in, show the app's main content
           return Scaffold(
+            backgroundColor: Colors.white,
             body: IndexedStack(
               index: _selectedIndex,
               children: _widgetOptions,
             ),
             bottomNavigationBar: BottomNavigationBar(
+              backgroundColor: Colors.white,
+              
               items: [
                 BottomNavigationBarItem(
                   icon: CustomNavItem(
@@ -301,7 +304,7 @@ class _MainScreenState extends State<MainScreen> {
           );
         } else {
           // User is not logged in, show the authentication screen
-          return LoginScreen();  // Your login screen
+          return const LoginScreen();  // Your login screen
         }
       },
     );

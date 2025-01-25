@@ -1,7 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/personal_model.dart';
 import 'package:elshaf3y_store/features/seller_feature/domain/use_cases/add_personal.dart';
-
 import 'package:elshaf3y_store/features/seller_feature/domain/use_cases/delete_personal.dart';
 import 'package:elshaf3y_store/features/seller_feature/domain/use_cases/get_personal.dart';
 import 'package:elshaf3y_store/features/seller_feature/domain/use_cases/update_personal.dart';
@@ -58,5 +57,22 @@ class PersonalSpendCubit extends Cubit<PersonalSpendState> {
       await deletePersonalSpendUseCase(personalSpendId);
       emit(PersonalSpendLoaded(updatedPersonalSpends));
     }
+  }
+
+  void sortPersonalSpendsByAmount() {
+   if (state is PersonalSpendLoaded) {
+      final personalSpends = (state as PersonalSpendLoaded).personalSpends;
+      personalSpends.sort((a, b) => b.amount.compareTo(a.amount));
+      emit(PersonalSpendLoaded(List.from(personalSpends)));
+    }
+  }
+
+  void sortPersonalSpendsByDate() {
+      if (state is PersonalSpendLoaded) {
+      final personalSpends = (state as PersonalSpendLoaded).personalSpends;
+      personalSpends.sort((a, b) => b.date.compareTo(a.date));
+      emit(PersonalSpendLoaded(List.from(personalSpends)));
+    }
+  
   }
 }
