@@ -99,11 +99,11 @@ class _DriverScreenState extends State<DriverScreen> {
                 } else if (state is DriverLoaded) {
                   return isGridView
                       ? Padding(
-                        padding:  EdgeInsets.all(20.sp),
+                        padding:  EdgeInsets.all(10.sp),
                         child: GridView.builder(
                               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                childAspectRatio: 1.6/ 2,
+                                childAspectRatio: 1.3/ 2,
                                 crossAxisSpacing: 10,
                                 mainAxisSpacing: 10,
                               ),

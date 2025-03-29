@@ -208,7 +208,7 @@ class MyApp extends StatelessWidget {
             ),
             locale: context.locale,
             supportedLocales: context.supportedLocales,
-            localizationsDelegates: context.localizationDelegates,
+            localizationsDelegates: context.localizationDelegates,  
             home: const MainScreen(),
             ));
         },
