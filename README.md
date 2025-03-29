@@ -7,17 +7,12 @@ A Flutter app for managing car parts stores, sales, driver trips, and seller fin
 
 | Screen 1 | Screen 2 | Screen 3 |
 |----------|----------|----------|
-| ![Screen 1](screenshots/1.png) | ![Screen 2](screenshots/2.png) | ![Screen 3](screenshots/3.png) |
+| ![Screen 1](screenshots/7.png) | ![Screen 2](screenshots/2.png) | ![Screen 3](screenshots/3.png) |
 
 | Screen 4 | Screen 5 | Screen 6 |
 |----------|----------|----------|
 | ![Screen 4](screenshots/4.png) | ![Screen 5](screenshots/5.png) | ![Screen 6](screenshots/6.png) |
 
-<div align="center">
-  <img src="screenshots/7.png" alt="Screen 7" width="400">
-  <br>
-  <em>Final Screen Overview</em>
-</div>
 
 ## Features
 - **User Roles**:
