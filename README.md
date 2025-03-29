@@ -3,20 +3,6 @@
 A Flutter app for managing car parts stores, sales, driver trips, and seller finances. Built with **Clean Architecture**, **Firebase Auth**, and **Firestore**.
 
 ---
-## App Screenshots
-
-### Key Features Preview
-
-| Screen 1 | Screen 2 | Screen 3 |
-|----------|----------|----------|
-| ![Screen 1](screenshots/1.png) | ![Screen 2](screenshots/2.png) | ![Screen 3](screenshots/3.png) |
-
-| Screen 4 | Screen 5 | Screen 6 |
-|----------|----------|----------|
-| ![Screen 4](screenshots/4.png) | ![Screen 5](screenshots/5.png) | ![Screen 6](screenshots/6.png) |
-
-![Screen 7](screenshots/7.png)
-*Final Overview Screen*
 
 ## Features
 - **User Roles**:
