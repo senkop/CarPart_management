@@ -295,7 +295,8 @@ class ReportService {
     );
 
     final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/${seller.name}_${month}_$year.pdf';
+    final filePath =
+        '${directory.path}/${seller.name}_${month}_$year ${DateTime.now().millisecondsSinceEpoch}.pdf';
     final file = File(filePath);
     await file.writeAsBytes(await pdf.save());
 
@@ -607,8 +608,8 @@ class ReportService {
 
     // Save PDF
     final directory = await getApplicationDocumentsDirectory();
-    final file =
-        File('${directory.path}/all_sellers_report_${month}_$year.pdf');
+    final file = File(
+        '${directory.path}/all_sellers_report_${month}_$year ${DateTime.now().millisecondsSinceEpoch}.pdf');
     await file.writeAsBytes(await pdf.save());
 
     return file;
