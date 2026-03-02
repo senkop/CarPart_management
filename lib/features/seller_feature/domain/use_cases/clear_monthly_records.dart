@@ -6,11 +6,35 @@ class ClearMonthlyRecordsUseCase {
 
   ClearMonthlyRecordsUseCase(this.repository);
 
+  // Clear all monthly records (USE WITH EXTREME CAUTION!)
+  // This will delete ALL historical data permanently
   Future<void> call() async {
-    // Implement the logic to clear all monthly records from Firebase
-    final records = await repository.getAllMonthlyGains();
-    for (var record in records) {
-      await repository.deleteMonthlyGains(record.year, record.month);
+    try {
+      print('⚠️ WARNING: Clearing all monthly records...');
+
+      // Get all records
+      final records = await repository.getAllMonthlyGains();
+
+      // Delete each one
+      for (var record in records) {
+        await repository.deleteMonthlyGains(record.year, record.month);
+      }
+
+      print('✅ Cleared ${records.length} monthly records');
+    } catch (e) {
+      print('❌ Error clearing monthly records: $e');
+      throw Exception('Failed to clear monthly records: $e');
+    }
+  }
+
+  // Delete only a specific month (safer option)
+  Future<void> deleteSpecificMonth(int year, int month) async {
+    try {
+      await repository.deleteMonthlyGains(year, month);
+      print('✅ Deleted record for $month/$year');
+    } catch (e) {
+      print('❌ Error deleting month record: $e');
+      throw Exception('Failed to delete month record: $e');
     }
   }
 }

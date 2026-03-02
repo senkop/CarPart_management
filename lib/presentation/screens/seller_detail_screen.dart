@@ -7,6 +7,10 @@ import 'package:elshaf3y_store/features/car_parts_feature/data/models/car_parts_
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
+import 'package:elshaf3y_store/features/transaction_feature/data/models/transaction_model.dart';
+import 'package:elshaf3y_store/features/transaction_feature/data/repositories/transaction_repository.dart';
+import 'package:elshaf3y_store/features/reports/services/report_service.dart';
+import 'package:open_filex/open_filex.dart'; // ✅ Changed from open_file
 
 class SellerDetailScreen extends StatefulWidget {
   final Seller seller;
@@ -32,6 +36,9 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
   int selectedMonth = DateTime.now().month;
   int selectedYear = DateTime.now().year;
 
+  final TransactionRepository _transactionRepository = TransactionRepository();
+  final ReportService _reportService = ReportService();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,22 +51,72 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
             if (state is SellerLoaded) {
               final updatedSeller =
                   state.sellers.firstWhere((s) => s.id == widget.seller.id);
-              final totalGain = updatedSeller.getMonthlyGain();
+
+              // ✅ Calculate actual gain for SELECTED MONTH/YEAR ONLY
+              double monthlyActualGain = 0.0;
+
+              for (var carPart in updatedSeller.carParts) {
+                final totalSellingPrice = carPart.price * carPart.quantity;
+                final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
+
+                // ✅ ONLY count payments made in the SELECTED month/year
+                double monthlyPayments = 0.0;
+                for (var payment in carPart.payments) {
+                  if (payment.date.month == selectedMonth &&
+                      payment.date.year == selectedYear) {
+                    monthlyPayments += payment.amount;
+                  }
+                }
+
+                if (monthlyPayments > 0 && totalSellingPrice > 0) {
+                  // Calculate what % of total price was paid THIS MONTH
+                  final monthlyPaymentPercentage =
+                      monthlyPayments / totalSellingPrice;
+
+                  // Calculate proportional cost for THIS MONTH's payments
+                  final proportionalCost =
+                      totalPurchasePrice * monthlyPaymentPercentage;
+
+                  // Calculate actual gain for THIS MONTH
+                  final actualGain = monthlyPayments - proportionalCost;
+                  monthlyActualGain += actualGain;
+
+                  print('📦 ${carPart.name}:');
+                  print(
+                      '   Payments this month: \$${monthlyPayments.toStringAsFixed(2)}');
+                  print(
+                      '   Proportional cost: \$${proportionalCost.toStringAsFixed(2)}');
+                  print(
+                      '   Gain this month: \$${actualGain.toStringAsFixed(2)}');
+                }
+              }
+
               return Column(
                 children: [
                   Hero(
-                    tag:
-                        'seller_${widget.seller.id}', // Ensure unique tag for each seller
+                    tag: 'seller_${widget.seller.id}',
                     child: Text(widget.seller.name),
                   ),
-                  Text('Total Gain: \$${totalGain.toStringAsFixed(2)}'),
+                  Text(
+                      '${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear Gain: \$${monthlyActualGain.toStringAsFixed(2)}'),
                 ],
               );
             }
             return Container();
           },
         ),
-        actions: [],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.table_chart),
+            tooltip: 'Export to Excel',
+            onPressed: () => _exportSellerToExcel(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Export to PDF',
+            onPressed: () => _exportSellerToPDF(),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -148,8 +205,46 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     itemBuilder: (context, index) {
                       final carPart = carPartsForSelectedMonth[
                           carPartsForSelectedMonth.length - index - 1];
-                      final gain = (carPart.price - carPart.purchasePrice) *
-                          carPart.quantity;
+
+                      // Calculate TOTAL price for all units
+                      final totalSellingPrice =
+                          carPart.price * carPart.quantity;
+                      final totalPurchasePrice = carPart.purchasePrice;
+
+                      // Calculate how much has been paid so far
+                      final totalPaid = totalSellingPrice - carPart.amountOwed;
+
+                      // Calculate payment percentage (what % of total price was paid)
+                      final paymentPercentage = totalSellingPrice > 0
+                          ? totalPaid / totalSellingPrice
+                          : 0.0;
+
+                      // Calculate ACTUAL gain:
+                      // We've received "totalPaid" dollars
+                      // We need to deduct the proportional purchase cost
+                      final proportionalCost =
+                          totalPurchasePrice * paymentPercentage;
+                      final actualGain = totalPaid - proportionalCost;
+
+                      // Calculate POTENTIAL gain (if fully paid)
+                      final potentialGain =
+                          totalSellingPrice - totalPurchasePrice;
+
+                      print('🔍 Car Part: ${carPart.name}');
+                      print(
+                          '   Total Selling Price: \$${totalSellingPrice.toStringAsFixed(2)}');
+                      print(
+                          '   Total Purchase Price: \$${totalPurchasePrice.toStringAsFixed(2)}');
+                      print('   Total Paid: \$${totalPaid.toStringAsFixed(2)}');
+                      print(
+                          '   Payment %: ${(paymentPercentage * 100).toStringAsFixed(1)}%');
+                      print(
+                          '   Proportional Cost: \$${proportionalCost.toStringAsFixed(2)}');
+                      print(
+                          '   ✅ Actual Gain: \$${actualGain.toStringAsFixed(2)}');
+                      print(
+                          '   💰 Potential Gain: \$${potentialGain.toStringAsFixed(2)}');
+
                       return GestureDetector(
                         onTap: () {
                           _showEditCarPartDialog(context, carPart);
@@ -193,7 +288,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16.0)),
                                       Text(
-                                          '\$${(carPart.price * carPart.quantity).toStringAsFixed(2)}'),
+                                          '\$${totalSellingPrice.toStringAsFixed(2)}'),
                                     ],
                                   ),
                                   TableRow(
@@ -203,12 +298,12 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16.0)),
                                       Text(
-                                          '\$${carPart.purchasePrice.toStringAsFixed(2)}'),
+                                          '\$${totalPurchasePrice.toStringAsFixed(2)}'),
                                     ],
                                   ),
                                   TableRow(
                                     children: [
-                                      const Text('Selled Price:',
+                                      const Text('Unit Price:',
                                           style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16.0)),
@@ -237,6 +332,18 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                   ),
                                   TableRow(
                                     children: [
+                                      const Text('Total Paid:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.0,
+                                              color: Colors.blue)),
+                                      Text('\$${totalPaid.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                              color: Colors.blue)),
+                                    ],
+                                  ),
+                                  TableRow(
+                                    children: [
                                       const Text('Amount Owed:',
                                           style: TextStyle(
                                               fontWeight: FontWeight.bold,
@@ -247,11 +354,38 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                   ),
                                   TableRow(
                                     children: [
-                                      const Text('Gain:',
+                                      const Text('Potential Gain:',
                                           style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16.0)),
-                                      Text('\$${gain.toStringAsFixed(2)}'),
+                                      Text(
+                                          '\$${potentialGain.toStringAsFixed(2)}'),
+                                    ],
+                                  ),
+                                  TableRow(
+                                    children: [
+                                      const Text('Actual Gain:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.0,
+                                              color: Colors.green)),
+                                      Text('\$${actualGain.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  TableRow(
+                                    children: [
+                                      const Text('Payment %:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14.0,
+                                              color: Colors.grey)),
+                                      Text(
+                                          '${(paymentPercentage * 100).toStringAsFixed(1)}%',
+                                          style: const TextStyle(
+                                              color: Colors.grey)),
                                     ],
                                   ),
                                 ],
@@ -497,10 +631,23 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Make Payment'),
-          content: TextField(
-            controller: paymentAmountController,
-            decoration: InputDecoration(labelText: 'Payment Amount'),
-            keyboardType: TextInputType.number,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Amount Owed: \$${carPart.amountOwed.toStringAsFixed(2)}',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                    fontSize: 16.0),
+              ),
+              SizedBox(height: 8),
+              TextField(
+                controller: paymentAmountController,
+                decoration: InputDecoration(labelText: 'Payment Amount'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
           ),
           actions: [
             TextButton(
@@ -510,14 +657,42 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 final paymentAmount =
                     double.parse(paymentAmountController.text);
+
+                if (paymentAmount > carPart.amountOwed) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Payment cannot exceed amount owed (\$${carPart.amountOwed.toStringAsFixed(2)})'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
                 final remainingAmount = carPart.amountOwed - paymentAmount;
-
+                final paymentDate = DateTime.now();
                 final payment =
-                    Payment(amount: paymentAmount, date: DateTime.now());
+                    Payment(amount: paymentAmount, date: paymentDate);
 
+                // ✅ CREATE TRANSACTION RECORD
+                final transaction = Transaction(
+                  id: const Uuid().v4(),
+                  sellerId: widget.seller.id,
+                  sellerName: widget.seller.name,
+                  carPartId: carPart.id,
+                  carPartName: carPart.name,
+                  amount: paymentAmount,
+                  date: paymentDate,
+                  description: 'Payment for ${carPart.name}',
+                );
+
+                // ✅ SAVE TRANSACTION TO FIREBASE
+                await _transactionRepository.saveTransaction(transaction);
+
+                // Update car part
                 final updatedCarPart = CarPart(
                   id: carPart.id,
                   name: carPart.name,
@@ -527,10 +702,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   quantity: carPart.quantity,
                   dateAdded: carPart.dateAdded,
                   amountOwed: remainingAmount,
-                  payments: [
-                    ...carPart.payments,
-                    payment
-                  ], // Add the new payment
+                  payments: [...carPart.payments, payment],
                 );
 
                 context
@@ -538,8 +710,16 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     .updateCarPart(widget.seller.id, updatedCarPart);
 
                 paymentAmountController.clear();
-
                 Navigator.of(context).pop();
+
+                // Show success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        '✅ Payment recorded: \$${paymentAmount.toStringAsFixed(2)}'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
               },
               child: const Text('Pay'),
             ),
@@ -658,5 +838,83 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
         );
       },
     );
+  }
+
+  Future<void> _exportSellerToExcel() async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Generating Excel report...')),
+      );
+
+      final file = await _reportService.generateSellerExcelReport(
+        widget.seller,
+        selectedMonth,
+        selectedYear,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Excel saved: ${file.path}'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Open',
+            textColor: Colors.white,
+            onPressed: () =>
+                OpenFilex.open(file.path), // ✅ Changed to OpenFilex
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating Excel: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _exportSellerToPDF() async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Generating PDF report...')),
+      );
+
+      final file = await _reportService.generateSellerPDFReport(
+        widget.seller,
+        selectedMonth,
+        selectedYear,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('PDF saved: ${file.path}'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Open',
+            textColor: Colors.white,
+            onPressed: () =>
+                OpenFilex.open(file.path), // ✅ Changed to OpenFilex
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

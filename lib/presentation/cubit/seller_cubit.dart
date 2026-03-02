@@ -201,7 +201,8 @@ class SellerCubit extends Cubit<SellerState> {
   void sortSellersByGains() {
     if (state is SellerLoaded) {
       final sellers = (state as SellerLoaded).sellers;
-      sellers.sort((a, b) => b.getMonthlyGain().compareTo(a.getMonthlyGain()));
+      sellers.sort((a, b) =>
+          b.getActualMonthlyGain().compareTo(a.getActualMonthlyGain()));
       emit(SellerLoaded(sellers));
     }
   }
