@@ -24,7 +24,7 @@ import 'package:elshaf3y_store/data/repositories/seller_repository.dart';
 import 'package:elshaf3y_store/domain/use_cases/update_car_part_use_case.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:easy_localization/easy_localization.dart';
+// import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'presentation/cubit/seller_cubit.dart';
 import 'presentation/cubit/language_cubit.dart';
@@ -43,7 +43,7 @@ import 'presentation/screens/personal_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await EasyLocalization.ensureInitialized();
+  // await EasyLocalization.ensureInitialized();
   final sharedPreferences = await SharedPreferences.getInstance();
   final sellerRepository = SellerRepository();
   final driverRepository = DriverRepository();
@@ -70,11 +70,7 @@ void main() async {
   final clearMonthlyRecordsUseCase = ClearMonthlyRecordsUseCase(monthlyRecordRepository);
 
   runApp(
-    EasyLocalization(
-      supportedLocales: const [Locale('en'), Locale('ar')],
-      path: 'assets/translations',
-      fallbackLocale: const Locale('en'),
-      child: MyApp(
+    MyApp(
         getSellersUseCase: getSellersUseCase,
         addSellerUseCase: addSellerUseCase,
         addCarPartUseCase: addCarPartUseCase,
@@ -96,7 +92,7 @@ void main() async {
         clearMonthlyRecordsUseCase: clearMonthlyRecordsUseCase,
         sharedPreferences: sharedPreferences,
       ),
-    ),
+    
   );
 }
 
@@ -206,9 +202,9 @@ class MyApp extends StatelessWidget {
             theme: ThemeData(
               primarySwatch: Colors.blue,
             ),
-            locale: context.locale,
-            supportedLocales: context.supportedLocales,
-            localizationsDelegates: context.localizationDelegates,  
+            // locale: context.locale,
+            // supportedLocales: context.supportedLocales,
+            // localizationsDelegates: context.localizationDelegates,  
             home: const MainScreen(),
             ));
         },

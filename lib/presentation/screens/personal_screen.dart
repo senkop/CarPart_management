@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:elshaf3y_store/presentation/cubit/personal_cubit.dart';
 import 'package:elshaf3y_store/presentation/cubit/personal_state.dart';
 import 'package:flutter/material.dart';
@@ -333,19 +332,19 @@ class _PersonalSpendScreenState extends State<PersonalSpendScreen> {
         return AlertDialog(
           elevation: 0,
           backgroundColor: Colors.white,
-          title: const Text('Sort Options').tr(),
+          title: const Text('Sort Options') ,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: const Text('By Amount').tr(),
+                title: const Text('By Amount') ,
                 onTap: () {
                   _sortByAmount();
                   Navigator.of(context).pop();
                 },
               ),
               ListTile(
-                title: const Text('By Date').tr(),
+                title: const Text('By Date') ,
                 onTap: () {
                   _sortByDate();
                   Navigator.of(context).pop();
@@ -358,7 +357,7 @@ class _PersonalSpendScreenState extends State<PersonalSpendScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel').tr(),
+              child: const Text('Cancel') ,
             ),
           ],
         );

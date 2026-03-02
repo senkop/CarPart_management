@@ -1,9 +1,10 @@
 
 
-import 'package:easy_localization/easy_localization.dart';
+// import 'package:easy_localization/easy_localization.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/monthly_record_model.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/repositories/monthly_record_repo.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class MonthlyGainsScreen extends StatelessWidget {
   final MonthlyGainsRepository _monthlyGainsRepository = MonthlyGainsRepository();

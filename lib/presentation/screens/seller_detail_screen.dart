@@ -1,12 +1,10 @@
-
-
-import 'package:easy_localization/easy_localization.dart';
 import 'package:elshaf3y_store/presentation/screens/payment_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:elshaf3y_store/presentation/cubit/seller_cubit.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/seller_model.dart';
 import 'package:elshaf3y_store/features/car_parts_feature/data/models/car_parts_model.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 
@@ -18,12 +16,16 @@ class SellerDetailScreen extends StatefulWidget {
   @override
   _SellerDetailScreenState createState() => _SellerDetailScreenState();
 }
+
 class _SellerDetailScreenState extends State<SellerDetailScreen> {
   final TextEditingController carPartNameController = TextEditingController();
   final TextEditingController carPartPriceController = TextEditingController();
-  final TextEditingController carPartPurchasePriceController = TextEditingController();
-  final TextEditingController carPartDescriptionController = TextEditingController();
-  final TextEditingController carPartQuantityController = TextEditingController();
+  final TextEditingController carPartPurchasePriceController =
+      TextEditingController();
+  final TextEditingController carPartDescriptionController =
+      TextEditingController();
+  final TextEditingController carPartQuantityController =
+      TextEditingController();
   final TextEditingController paymentAmountController = TextEditingController();
   bool isGridView = false;
 
@@ -40,15 +42,17 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
         title: BlocBuilder<SellerCubit, SellerState>(
           builder: (context, state) {
             if (state is SellerLoaded) {
-              final updatedSeller = state.sellers.firstWhere((s) => s.id == widget.seller.id);
+              final updatedSeller =
+                  state.sellers.firstWhere((s) => s.id == widget.seller.id);
               final totalGain = updatedSeller.getMonthlyGain();
               return Column(
                 children: [
                   Hero(
-                    tag: 'seller_${widget.seller.id}', // Ensure unique tag for each seller
-                    child: Text(widget.seller.name).tr(),
+                    tag:
+                        'seller_${widget.seller.id}', // Ensure unique tag for each seller
+                    child: Text(widget.seller.name),
                   ),
-                  Text('Total Gain: \$${totalGain.toStringAsFixed(2)}').tr(namedArgs: {'amount': totalGain.toStringAsFixed(2)}),
+                  Text('Total Gain: \$${totalGain.toStringAsFixed(2)}'),
                 ],
               );
             }
@@ -70,7 +74,8 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     _showAddCarPartDialog(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.black, backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    backgroundColor: Colors.white,
                     side: BorderSide(color: Colors.black),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
@@ -83,7 +88,8 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     _showSortOptionsDialog(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.black, backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    backgroundColor: Colors.white,
                     side: BorderSide(color: Colors.black),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
@@ -96,7 +102,8 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   items: List.generate(12, (index) => index + 1)
                       .map((month) => DropdownMenuItem(
                             value: month,
-                            child: Text(DateFormat.MMMM().format(DateTime(0, month))),
+                            child: Text(
+                                DateFormat.MMMM().format(DateTime(0, month))),
                           ))
                       .toList(),
                   onChanged: (value) {
@@ -107,12 +114,13 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                 ),
                 DropdownButton<int>(
                   value: selectedYear,
-                  items: List.generate(5, (index) => DateTime.now().year - index)
-                      .map((year) => DropdownMenuItem(
-                            value: year,
-                            child: Text(year.toString()),
-                          ))
-                      .toList(),
+                  items:
+                      List.generate(5, (index) => DateTime.now().year - index)
+                          .map((year) => DropdownMenuItem(
+                                value: year,
+                                child: Text(year.toString()),
+                              ))
+                          .toList(),
                   onChanged: (value) {
                     setState(() {
                       selectedYear = value!;
@@ -125,23 +133,30 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
           BlocBuilder<SellerCubit, SellerState>(
             builder: (context, state) {
               if (state is SellerLoaded) {
-                final updatedSeller = state.sellers.firstWhere((s) => s.id == widget.seller.id);
-                final carPartsForSelectedMonth = updatedSeller.carParts.where((carPart) {
-                  return carPart.dateAdded.month == selectedMonth && carPart.dateAdded.year == selectedYear;
+                final updatedSeller =
+                    state.sellers.firstWhere((s) => s.id == widget.seller.id);
+                final carPartsForSelectedMonth =
+                    updatedSeller.carParts.where((carPart) {
+                  return carPart.dateAdded.month == selectedMonth &&
+                      carPart.dateAdded.year == selectedYear;
                 }).toList();
                 return Expanded(
                   child: ListView.builder(
-                    key: ValueKey(carPartsForSelectedMonth), // Add a key to force rebuild
+                    key: ValueKey(
+                        carPartsForSelectedMonth), // Add a key to force rebuild
                     itemCount: carPartsForSelectedMonth.length,
                     itemBuilder: (context, index) {
-                      final carPart = carPartsForSelectedMonth[carPartsForSelectedMonth.length - index - 1];
-                      final gain = (carPart.price - carPart.purchasePrice) * carPart.quantity;
+                      final carPart = carPartsForSelectedMonth[
+                          carPartsForSelectedMonth.length - index - 1];
+                      final gain = (carPart.price - carPart.purchasePrice) *
+                          carPart.quantity;
                       return GestureDetector(
                         onTap: () {
                           _showEditCarPartDialog(context, carPart);
                         },
                         child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 8.0, horizontal: 16.0),
                           padding: const EdgeInsets.all(8.0),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade300),
@@ -157,7 +172,9 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                   Expanded(
                                     child: Text(
                                       carPart.name,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18.0),
                                     ),
                                   ),
                                 ],
@@ -171,44 +188,70 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                 children: [
                                   TableRow(
                                     children: [
-                                      const Text('Total Price:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)).tr(),
-                                      Text('\$${(carPart.price * carPart.quantity).toStringAsFixed(2)}', style: const TextStyle(fontSize: 16.0)).tr(namedArgs: {'amount': (carPart.price * carPart.quantity).toStringAsFixed(2)}),
+                                      const Text('Total Price:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.0)),
+                                      Text(
+                                          '\$${(carPart.price * carPart.quantity).toStringAsFixed(2)}'),
                                     ],
                                   ),
                                   TableRow(
                                     children: [
-                                      const Text('Purchase Price:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)).tr(),
-                                      Text('\$${carPart.purchasePrice.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16.0)).tr(namedArgs: {'amount': carPart.purchasePrice.toStringAsFixed(2)}),
+                                      const Text('Purchase Price:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.0)),
+                                      Text(
+                                          '\$${carPart.purchasePrice.toStringAsFixed(2)}'),
                                     ],
                                   ),
                                   TableRow(
                                     children: [
-                                      const Text('Selled Price:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)).tr(),
-                                      Text('\$${carPart.price.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16.0)).tr(namedArgs: {'amount': carPart.price.toStringAsFixed(2)}),
+                                      const Text('Selled Price:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.0)),
+                                      Text(
+                                          '\$${carPart.price.toStringAsFixed(2)}'),
                                     ],
                                   ),
                                   TableRow(
                                     children: [
-                                      const Text('Quantity:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)).tr(),
-                                      Text('${carPart.quantity}', style: const TextStyle(fontSize: 16.0)).tr(namedArgs: {'quantity': carPart.quantity.toString()}),
+                                      const Text('Quantity:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.0)),
+                                      Text('${carPart.quantity}'),
                                     ],
                                   ),
                                   TableRow(
                                     children: [
-                                      const Text('Date:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)).tr(),
-                                      Text(DateFormat('yyyy-MM-dd').format(carPart.dateAdded), style: const TextStyle(fontSize: 16.0)).tr(namedArgs: {'date': DateFormat('yyyy-MM-dd').format(carPart.dateAdded)}),
+                                      const Text('Date:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.0)),
+                                      Text(DateFormat('yyyy-MM-dd')
+                                          .format(carPart.dateAdded)),
                                     ],
                                   ),
                                   TableRow(
                                     children: [
-                                      const Text('Amount Owed:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)).tr(),
-                                      Text('\$${carPart.amountOwed.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16.0)).tr(namedArgs: {'amount': carPart.amountOwed.toStringAsFixed(2)}),
+                                      const Text('Amount Owed:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.0)),
+                                      Text(
+                                          '\$${carPart.amountOwed.toStringAsFixed(2)}'),
                                     ],
                                   ),
                                   TableRow(
                                     children: [
-                                      const Text('Gain:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0)).tr(),
-                                      Text('\$${gain.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16.0)).tr(namedArgs: {'amount': gain.toStringAsFixed(2)}),
+                                      const Text('Gain:',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16.0)),
+                                      Text('\$${gain.toStringAsFixed(2)}'),
                                     ],
                                   ),
                                 ],
@@ -216,33 +259,40 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                               const SizedBox(height: 8.0),
                               Text(
                                 'Description: ${carPart.description}',
-                                style: const TextStyle(color: Colors.black, fontSize: 16.0),
-                              ).tr(namedArgs: {'description': carPart.description}),
+                                style: const TextStyle(
+                                    color: Colors.black, fontSize: 16.0),
+                              ),
                               const SizedBox(height: 8.0),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.payment, color: Colors.green),
+                                    icon: const Icon(Icons.payment,
+                                        color: Colors.green),
                                     onPressed: () {
                                       _showPaymentDialog(context, carPart);
                                     },
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.list, color: Colors.blue),
+                                    icon: const Icon(Icons.list,
+                                        color: Colors.blue),
                                     onPressed: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => PaymentDetailsScreen(carPart: carPart),
+                                          builder: (context) =>
+                                              PaymentDetailsScreen(
+                                                  carPart: carPart),
                                         ),
                                       );
                                     },
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.red),
                                     onPressed: () {
-                                      _showDeleteCarPartDialog(context, carPart);
+                                      _showDeleteCarPartDialog(
+                                          context, carPart);
                                     },
                                   ),
                                 ],
@@ -277,33 +327,34 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          title: const Text('Add New Car Part').tr(),
+          title: const Text('Add New Car Part'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: carPartNameController,
-                decoration: InputDecoration(labelText: 'Car Part Name'.tr()),
+                decoration: InputDecoration(labelText: 'Car Part Name'),
               ),
               TextField(
                 controller: carPartPriceController,
-                decoration: InputDecoration(labelText: 'Car Part Price'.tr()),
+                decoration: InputDecoration(labelText: 'Car Part Price'),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
               TextField(
                 controller: carPartPurchasePriceController,
-                decoration: InputDecoration(labelText: 'Car Part Purchase Price'.tr()),
+                decoration:
+                    InputDecoration(labelText: 'Car Part Purchase Price'),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               ),
               TextField(
                 controller: carPartDescriptionController,
-                decoration: InputDecoration(labelText: 'Car Part Description'.tr()),
+                decoration: InputDecoration(labelText: 'Car Part Description'),
               ),
               TextField(
                 controller: carPartQuantityController,
-                decoration: InputDecoration(labelText: 'Car Part Quantity'.tr()),
+                decoration: InputDecoration(labelText: 'Car Part Quantity'),
                 keyboardType: TextInputType.number,
               ),
             ],
@@ -313,15 +364,17 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel').tr(),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 final carPartName = carPartNameController.text;
                 final carPartPrice = double.parse(carPartPriceController.text);
-                final carPartPurchasePrice = double.parse(carPartPurchasePriceController.text);
+                final carPartPurchasePrice =
+                    double.parse(carPartPurchasePriceController.text);
                 final carPartDescription = carPartDescriptionController.text;
-                final carPartQuantity = int.parse(carPartQuantityController.text);
+                final carPartQuantity =
+                    int.parse(carPartQuantityController.text);
 
                 final carPart = CarPart(
                   id: const Uuid().v4(),
@@ -334,13 +387,15 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   amountOwed: carPartPrice * carPartQuantity,
                 );
 
-                context.read<SellerCubit>().addCarPartToSeller(widget.seller.id, carPart);
+                context
+                    .read<SellerCubit>()
+                    .addCarPartToSeller(widget.seller.id, carPart);
 
                 _clearCarPartControllers(); // Clear the controllers after adding the car part
 
                 Navigator.of(context).pop();
               },
-              child: const Text('Add').tr(),
+              child: const Text('Add'),
             ),
           ],
         );
@@ -360,31 +415,32 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          title: const Text('Edit Car Part').tr(),
+          title: const Text('Edit Car Part'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: carPartNameController,
-                decoration: InputDecoration(labelText: 'Car Part Name'.tr()),
+                decoration: InputDecoration(labelText: 'Car Part Name'),
               ),
               TextField(
                 controller: carPartPriceController,
-                decoration: InputDecoration(labelText: 'Car Part Price'.tr()),
+                decoration: InputDecoration(labelText: 'Car Part Price'),
                 keyboardType: TextInputType.number,
               ),
               TextField(
                 controller: carPartPurchasePriceController,
-                decoration: InputDecoration(labelText: 'Car Part Purchase Price'.tr()),
+                decoration:
+                    InputDecoration(labelText: 'Car Part Purchase Price'),
                 keyboardType: TextInputType.number,
               ),
               TextField(
                 controller: carPartDescriptionController,
-                decoration: InputDecoration(labelText: 'Car Part Description'.tr()),
+                decoration: InputDecoration(labelText: 'Car Part Description'),
               ),
               TextField(
                 controller: carPartQuantityController,
-                decoration: InputDecoration(labelText: 'Car Part Quantity'.tr()),
+                decoration: InputDecoration(labelText: 'Car Part Quantity'),
                 keyboardType: TextInputType.number,
               ),
             ],
@@ -394,15 +450,17 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel').tr(),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 final carPartName = carPartNameController.text;
                 final carPartPrice = double.parse(carPartPriceController.text);
-                final carPartPurchasePrice = double.parse(carPartPurchasePriceController.text);
+                final carPartPurchasePrice =
+                    double.parse(carPartPurchasePriceController.text);
                 final carPartDescription = carPartDescriptionController.text;
-                final carPartQuantity = int.parse(carPartQuantityController.text);
+                final carPartQuantity =
+                    int.parse(carPartQuantityController.text);
 
                 final updatedCarPart = CarPart(
                   id: carPart.id,
@@ -412,17 +470,20 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   description: carPartDescription,
                   quantity: carPartQuantity,
                   dateAdded: carPart.dateAdded,
-                  amountOwed: carPart.price * carPart.quantity,
+                  amountOwed:
+                      carPart.amountOwed, // Keep the current amount owed
                   payments: carPart.payments, // Preserve existing payments
                 );
 
-                context.read<SellerCubit>().updateCarPart(widget.seller.id, updatedCarPart);
+                context
+                    .read<SellerCubit>()
+                    .updateCarPart(widget.seller.id, updatedCarPart);
 
-                _clearCarPartControllers(); // Clear the controllers after editing the car part
+                _clearCarPartControllers();
 
                 Navigator.of(context).pop();
               },
-              child: const Text('Save').tr(),
+              child: const Text('Save'),
             ),
           ],
         );
@@ -435,10 +496,10 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Make Payment').tr(),
+          title: const Text('Make Payment'),
           content: TextField(
             controller: paymentAmountController,
-            decoration: InputDecoration(labelText: 'Payment Amount'.tr()),
+            decoration: InputDecoration(labelText: 'Payment Amount'),
             keyboardType: TextInputType.number,
           ),
           actions: [
@@ -446,14 +507,16 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel').tr(),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
-                final paymentAmount = double.parse(paymentAmountController.text);
+                final paymentAmount =
+                    double.parse(paymentAmountController.text);
                 final remainingAmount = carPart.amountOwed - paymentAmount;
 
-                final payment = Payment(amount: paymentAmount, date: DateTime.now());
+                final payment =
+                    Payment(amount: paymentAmount, date: DateTime.now());
 
                 final updatedCarPart = CarPart(
                   id: carPart.id,
@@ -464,16 +527,21 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   quantity: carPart.quantity,
                   dateAdded: carPart.dateAdded,
                   amountOwed: remainingAmount,
-                  payments: [...carPart.payments, payment], // Add the new payment
+                  payments: [
+                    ...carPart.payments,
+                    payment
+                  ], // Add the new payment
                 );
 
-                context.read<SellerCubit>().updateCarPart(widget.seller.id, updatedCarPart);
+                context
+                    .read<SellerCubit>()
+                    .updateCarPart(widget.seller.id, updatedCarPart);
 
                 paymentAmountController.clear();
 
                 Navigator.of(context).pop();
               },
-              child: const Text('Pay').tr(),
+              child: const Text('Pay'),
             ),
           ],
         );
@@ -484,23 +552,63 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
   void _showDeleteCarPartDialog(BuildContext context, CarPart carPart) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete Car Part').tr(),
-          content: const Text('Are you sure you want to delete this car part?').tr(),
+          backgroundColor: Colors.white,
+          title: const Text('Delete Car Part'),
+          content: const Text('Are you sure you want to delete this car part?'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
               },
-              child: const Text('Cancel').tr(),
+              child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
-                context.read<SellerCubit>().deleteCarPart(widget.seller.id, carPart.id);
-                Navigator.of(context).pop();
+              onPressed: () async {
+                // Close dialog first
+                Navigator.of(dialogContext).pop();
+
+                // Use the outer context (not dialog context) for ScaffoldMessenger
+                if (!context.mounted) return;
+
+                try {
+                  print(
+                      'Deleting car part: ${carPart.id} from seller: ${widget.seller.id}');
+
+                  // Show loading indicator
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Deleting...')),
+                  );
+
+                  // Delete the car part
+                  await context
+                      .read<SellerCubit>()
+                      .deleteCarPart(widget.seller.id, carPart.id);
+
+                  if (!context.mounted) return;
+
+                  // Show success message
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Car part deleted successfully')),
+                  );
+                } catch (e) {
+                  print('Error deleting car part: $e');
+
+                  if (!context.mounted) return;
+
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting car part: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
-              child: const Text('Delete').tr(),
+              child: const Text('Delete', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -514,28 +622,34 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          title: const Text('Sort Options').tr(),
+          title: const Text('Sort Options'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: const Text('Sort by Date').tr(),
+                title: const Text('Sort by Date'),
                 onTap: () {
-                  context.read<SellerCubit>().sortCarPartsByDate(widget.seller.id);
+                  context
+                      .read<SellerCubit>()
+                      .sortCarPartsByDate(widget.seller.id);
                   Navigator.of(context).pop();
                 },
               ),
               ListTile(
-                title: const Text('Sort by Price').tr(),
+                title: const Text('Sort by Price'),
                 onTap: () {
-                  context.read<SellerCubit>().sortCarPartsByPrice(widget.seller.id);
+                  context
+                      .read<SellerCubit>()
+                      .sortCarPartsByPrice(widget.seller.id);
                   Navigator.of(context).pop();
                 },
               ),
               ListTile(
-                title: const Text('Sort by Amount Owed').tr(),
+                title: const Text('Sort by Amount Owed'),
                 onTap: () {
-                  context.read<SellerCubit>().sortCarPartsByAmountOwed(widget.seller.id);
+                  context
+                      .read<SellerCubit>()
+                      .sortCarPartsByAmountOwed(widget.seller.id);
                   Navigator.of(context).pop();
                 },
               ),

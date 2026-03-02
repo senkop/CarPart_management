@@ -13,6 +13,7 @@ import 'package:elshaf3y_store/features/seller_feature/data/models/transaction_m
 import 'package:elshaf3y_store/domain/use_cases/update_seller_use_case.dart';
 
 part 'seller_state.dart';
+
 class SellerCubit extends Cubit<SellerState> {
   final GetSellersUseCase getSellersUseCase;
   final AddSellerUseCase addSellerUseCase;
@@ -40,7 +41,8 @@ class SellerCubit extends Cubit<SellerState> {
     try {
       emit(SellerLoading());
       final sellers = await getSellersUseCase();
-      sellers.sort((a, b) => b.isPinned ? 1 : -1); // Sort sellers by pinned state
+      sellers
+          .sort((a, b) => b.isPinned ? 1 : -1); // Sort sellers by pinned state
       emit(SellerLoaded(sellers));
     } catch (e) {
       emit(SellerError(e.toString()));
@@ -52,7 +54,8 @@ class SellerCubit extends Cubit<SellerState> {
       seller.isPinned = !seller.isPinned;
       await updateSellerUseCase(seller);
       final updatedSellers = await getSellersUseCase();
-      updatedSellers.sort((a, b) => b.isPinned ? 1 : -1); // Sort sellers by pinned state
+      updatedSellers
+          .sort((a, b) => b.isPinned ? 1 : -1); // Sort sellers by pinned state
 // Sort sellers by pinned state
       emit(SellerLoaded(updatedSellers));
     }
@@ -92,9 +95,26 @@ class SellerCubit extends Cubit<SellerState> {
 
   Future<void> deleteCarPart(String sellerId, String carPartId) async {
     if (state is SellerLoaded) {
-      await deleteCarPartUseCase(sellerId, carPartId);
-      final updatedSellers = await getSellersUseCase();
-      emit(SellerLoaded(updatedSellers));
+      try {
+        print('Cubit: Starting delete for car part: $carPartId');
+        await deleteCarPartUseCase(sellerId, carPartId);
+        print('Cubit: Delete use case completed');
+
+        final updatedSellers = await getSellersUseCase();
+        print(
+            'Cubit: Fetched updated sellers, count: ${updatedSellers.length}');
+
+        final seller = updatedSellers.firstWhere((s) => s.id == sellerId);
+        print('Cubit: Seller car parts count: ${seller.carParts.length}');
+        print(
+            'Cubit: Car part IDs: ${seller.carParts.map((cp) => cp.id).toList()}');
+
+        emit(SellerLoaded(updatedSellers));
+        print('Cubit: Emitted new state');
+      } catch (e) {
+        print('Cubit: Error in deleteCarPart: $e');
+        emit(SellerError(e.toString()));
+      }
     }
   }
 
@@ -115,7 +135,8 @@ class SellerCubit extends Cubit<SellerState> {
       emit(SellerLoaded(updatedSellers));
     }
   }
-   Future<void> sortCarPartsByDate(String sellerId) async {
+
+  Future<void> sortCarPartsByDate(String sellerId) async {
     if (state is SellerLoaded) {
       final sellers = (state as SellerLoaded).sellers;
       final seller = sellers.firstWhere((s) => s.id == sellerId);
@@ -133,7 +154,8 @@ class SellerCubit extends Cubit<SellerState> {
     }
   }
 
-    Future<void> addPaymentToCarPart(String sellerId, String carPartId, Payment payment) async {
+  Future<void> addPaymentToCarPart(
+      String sellerId, String carPartId, Payment payment) async {
     if (state is SellerLoaded) {
       final sellers = (state as SellerLoaded).sellers;
       final seller = sellers.firstWhere((s) => s.id == sellerId);
@@ -143,34 +165,39 @@ class SellerCubit extends Cubit<SellerState> {
       emit(SellerLoaded(sellers));
     }
   }
-    void sortSellersByAmountOwed() {
+
+  void sortSellersByAmountOwed() {
     if (state is SellerLoaded) {
       final sellers = (state as SellerLoaded).sellers;
       sellers.sort((a, b) => b.getTotalOwed().compareTo(a.getTotalOwed()));
       emit(SellerLoaded(sellers));
     }
-
-}
-Future<void> sortCarPartsByAmountOwed(String sellerId) async {
-  if (state is SellerLoaded) {
-    final sellers = (state as SellerLoaded).sellers;
-    final seller = sellers.firstWhere((s) => s.id == sellerId);
-    
-    // Debug print before sorting
-    print("Before sorting by amount owed:");
-    seller.carParts.forEach((carPart) => print("${carPart.name}: ${carPart.amountOwed}"));
-
-    seller.carParts.sort((a, b) => a.amountOwed.compareTo(b.amountOwed));
-    
-    // Debug print after sorting
-    print("After sorting by amount owed:");
-    seller.carParts.forEach((carPart) => print("${carPart.name}: ${carPart.amountOwed}"));
-
-    // Create a new list to trigger UI update
-    final updatedSellers = sellers.map((s) => s.id == sellerId ? seller : s).toList();
-    emit(SellerLoaded(updatedSellers));
   }
-}
+
+  Future<void> sortCarPartsByAmountOwed(String sellerId) async {
+    if (state is SellerLoaded) {
+      final sellers = (state as SellerLoaded).sellers;
+      final seller = sellers.firstWhere((s) => s.id == sellerId);
+
+      // Debug print before sorting
+      print("Before sorting by amount owed:");
+      seller.carParts.forEach(
+          (carPart) => print("${carPart.name}: ${carPart.amountOwed}"));
+
+      seller.carParts.sort((a, b) => a.amountOwed.compareTo(b.amountOwed));
+
+      // Debug print after sorting
+      print("After sorting by amount owed:");
+      seller.carParts.forEach(
+          (carPart) => print("${carPart.name}: ${carPart.amountOwed}"));
+
+      // Create a new list to trigger UI update
+      final updatedSellers =
+          sellers.map((s) => s.id == sellerId ? seller : s).toList();
+      emit(SellerLoaded(updatedSellers));
+    }
+  }
+
   void sortSellersByGains() {
     if (state is SellerLoaded) {
       final sellers = (state as SellerLoaded).sellers;

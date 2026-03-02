@@ -57,7 +57,8 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/seller_model.dart';
-import 'package:elshaf3y_store/features/seller_feature/data/models/transaction_model.dart' as model;
+import 'package:elshaf3y_store/features/seller_feature/data/models/transaction_model.dart'
+    as model;
 
 class SellerRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -74,7 +75,9 @@ class SellerRepository {
 
   Future<Seller?> getSellerById(String id) async {
     final doc = await _sellers.doc(id).get();
-    return doc.exists ? Seller.fromJson(doc.data() as Map<String, dynamic>) : null;
+    return doc.exists
+        ? Seller.fromJson(doc.data() as Map<String, dynamic>)
+        : null;
   }
 
   Future<void> saveSellers(List<Seller> sellers) async {
@@ -92,12 +95,41 @@ class SellerRepository {
   }
 
   Future<void> deleteCarPart(String sellerId, String carPartId) async {
-    final sellerDoc = _sellers.doc(sellerId);
-    await sellerDoc.update({
-      'carParts': FieldValue.arrayRemove([
-        {'id': carPartId}
-      ]),
+    print('Repository: Deleting car part $carPartId from seller $sellerId');
+
+    // Get the seller document
+    final seller = await getSellerById(sellerId);
+    if (seller == null) {
+      print('Repository: Seller not found');
+      throw Exception('Seller not found');
+    }
+
+    print('Repository: Found seller with ${seller.carParts.length} car parts');
+
+    // Remove the car part from the list
+    final updatedCarParts =
+        seller.carParts.where((carPart) => carPart.id != carPartId).toList();
+
+    print(
+        'Repository: After removal, ${updatedCarParts.length} car parts remain');
+
+    // Create updated seller
+    final updatedSeller = Seller(
+      id: seller.id,
+      name: seller.name,
+      phone: seller.phone,
+      carParts: updatedCarParts,
+      pin: seller.pin,
+      isPinned: seller.isPinned,
+      monthlyGain: seller.monthlyGain,
+    );
+
+    // Update Firestore with the new car parts array
+    await _sellers.doc(sellerId).update({
+      'carParts': updatedCarParts.map((cp) => cp.toJson()).toList(),
     });
+
+    print('Repository: Firestore updated successfully');
   }
 
   Future<List<model.Transaction>> getTransactionHistory(String sellerId) async {

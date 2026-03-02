@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:elshaf3y_store/auth.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/monthly_record_model.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/repositories/monthly_record_repo.dart';
@@ -16,6 +15,7 @@ import 'package:elshaf3y_store/presentation/cubit/seller_cubit.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/seller_model.dart';
 import 'package:elshaf3y_store/features/car_parts_feature/data/models/car_parts_model.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:elshaf3y_store/presentation/screens/seller_detail_screen.dart';class SellerScreen extends StatefulWidget {
   final TextEditingController sellerNameController = TextEditingController();
@@ -182,7 +182,7 @@ class _SellerScreenState extends State<SellerScreen> {
               listener: (context, state) {
                 if (state is SellerLoaded) {
                   // ScaffoldMessenger.of(context).showSnackBar(
-                  //   SnackBar(content: const Text('Sellers updated').tr()),
+                  //   SnackBar(content: const Text('Sellers updated') ),
                   // );
                 }
               },
@@ -291,8 +291,8 @@ class _SellerScreenState extends State<SellerScreen> {
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}').tr(namedArgs: {'amount': seller.getTotalOwed().toStringAsFixed(2)}),
-                                    Text('Monthly Gain: \$${seller.getMonthlyGain().toStringAsFixed(2)}'),
+                                  Text('Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}'),
+                                  Text('Monthly Gain: \$${seller.getMonthlyGain().toStringAsFixed(2)}'),
                                   ],
                                 ),
                                 trailing: Row(
@@ -336,7 +336,7 @@ class _SellerScreenState extends State<SellerScreen> {
                 } else if (state is SellerError) {
                   return Center(child: Text('Error: ${state.message}'));
                 }
-                return Center(child: const Text('No sellers found').tr());
+                return Center(child: const Text('No sellers found') );
               },
             ),
           ),
@@ -350,21 +350,21 @@ class _SellerScreenState extends State<SellerScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Delete Seller').tr(),
-          content: const Text('Are you sure you want to delete this seller?').tr(),
+          title: const Text('Delete Seller') ,
+          content: const Text('Are you sure you want to delete this seller?') ,
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel').tr(),
+              child: const Text('Cancel') ,
             ),
             TextButton(
               onPressed: () {
                 context.read<SellerCubit>().deleteSeller(sellerId);
                 Navigator.of(context).pop();
               },
-              child: const Text('Delete').tr(),
+              child: const Text('Delete') ,
             ),
           ],
         );
@@ -379,17 +379,17 @@ class _SellerScreenState extends State<SellerScreen> {
         return AlertDialog(
           backgroundColor: Colors.white,
           elevation: 0,
-          title: const Text('Add New Seller').tr(),
+          title: const Text('Add New Seller') ,
           content: TextField(
             controller: widget.sellerNameController,
-            decoration: InputDecoration(labelText: 'Seller Name'.tr()),
+            decoration: InputDecoration(labelText: 'Seller Name' ),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel').tr(),
+              child: const Text('Cancel') ,
             ),
             TextButton(
               onPressed: () {
@@ -410,7 +410,7 @@ class _SellerScreenState extends State<SellerScreen> {
 
                 Navigator.of(context).pop();
               },
-              child: const Text('Add').tr(),
+              child: const Text('Add') ,
             ),
           ],
         );
@@ -425,17 +425,17 @@ class _SellerScreenState extends State<SellerScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Edit Seller').tr(),
+          title: const Text('Edit Seller') ,
           content: TextField(
             controller: widget.sellerNameController,
-            decoration: InputDecoration(labelText: 'Seller Name'.tr()),
+            decoration: InputDecoration(labelText: 'Seller Name' ),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Cancel').tr(),
+              child: const Text('Cancel') ,
             ),
             TextButton(
               onPressed: () {
@@ -457,7 +457,7 @@ class _SellerScreenState extends State<SellerScreen> {
 
                 Navigator.of(context).pop();
               },
-              child: const Text('Save').tr(),
+              child: const Text('Save') ,
             ),
           ],
         );
@@ -472,19 +472,19 @@ void _showSortOptionsDialog(BuildContext context) {
       return AlertDialog(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: const Text('Sort Options').tr(),
+        title: const Text('Sort Options') ,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              title: const Text('By Amount Owed').tr(),
+              title: const Text('By Amount Owed') ,
               onTap: () {
                 _sortByAmountOwed();
                 Navigator.of(context).pop();
               },
             ),
             ListTile(
-              title: const Text('By Gains').tr(),
+              title: const Text('By Gains') ,
               onTap: () {
                 _sortByGains();
                 Navigator.of(context).pop();
@@ -497,7 +497,7 @@ void _showSortOptionsDialog(BuildContext context) {
             onPressed: () {
               Navigator.of(context).pop();
             },
-            child: const Text('Cancel').tr(),
+            child: const Text('Cancel') ,
           ),
         ],
       );
