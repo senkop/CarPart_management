@@ -451,153 +451,182 @@ class ReportService {
   ) async {
     final pdf = pw.Document();
 
-    double grandTotalRevenue = 0;
-    double grandTotalCost = 0;
-    double grandTotalGain = 0;
+    // ✅ CALCULATE NET GAIN USING THE SAME LOGIC AS SELLER_SCREEN
+    double totalGainFromPayments = 0.0;
 
-    final tableData = <List<String>>[];
-
-    for (var seller in sellers) {
-      final monthlyCarParts = seller.carParts
-          .where((part) =>
-              part.dateAdded.month == month && part.dateAdded.year == year)
-          .toList();
-
-      double sellerRevenue = 0;
-      double sellerCost = 0;
-      double sellerGain = 0;
-
-      for (var carPart in monthlyCarParts) {
-        final totalSellingPrice = carPart.price * carPart.quantity;
-        final totalPurchasePrice = carPart.purchasePrice;
-
-        double monthlyPayments = 0.0;
-        for (var payment in carPart.payments) {
-          if (payment.date.month == month && payment.date.year == year) {
-            monthlyPayments += payment.amount;
-          }
-        }
-
-        final monthlyPaymentPercentage =
-            totalSellingPrice > 0 ? monthlyPayments / totalSellingPrice : 0.0;
-        final proportionalCost = totalPurchasePrice * monthlyPaymentPercentage;
-        final actualGain = monthlyPayments - proportionalCost;
-
-        sellerRevenue += monthlyPayments;
-        sellerCost += proportionalCost;
-        sellerGain += actualGain;
-      }
-
-      grandTotalRevenue += sellerRevenue;
-      grandTotalCost += sellerCost;
-      grandTotalGain += sellerGain;
-
-      tableData.add([
-        seller.name,
-        '\$${sellerRevenue.toStringAsFixed(2)}',
-        '\$${sellerCost.toStringAsFixed(2)}',
-        '\$${sellerGain.toStringAsFixed(2)}',
-        monthlyCarParts.length.toString(),
-      ]);
+    // Calculate total gain from ALL sellers for this specific month
+    for (final seller in sellers) {
+      totalGainFromPayments +=
+          seller.getActualMonthlyGain(month: month, year: year);
     }
+
+    // TODO: You need to pass driver costs and personal expenses here
+    // For now, we'll just show the seller gains
+    // You should pass these as parameters or fetch them in this method
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        build: (context) => [
-          pw.Header(
-            level: 0,
-            child: pw.Text(
-              'All Sellers Report',
-              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
-            ),
-          ),
-          pw.Text(
-            '${DateFormat.MMMM().format(DateTime(0, month))} $year',
-            style: pw.TextStyle(fontSize: 18, color: PdfColors.grey700),
-          ),
-          pw.SizedBox(height: 20),
-          pw.Table.fromTextArray(
-            headers: [
-              'Seller Name',
-              'Total Revenue',
-              'Total Cost',
-              'Total Gain',
-              'Car Parts'
-            ],
-            data: tableData,
-            headerStyle: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.white,
-            ),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue),
-            cellAlignment: pw.Alignment.centerLeft,
-          ),
-          pw.SizedBox(height: 20),
-          pw.Container(
-            padding: const pw.EdgeInsets.all(15),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.blue50,
-              border: pw.Border.all(color: PdfColors.blue, width: 2),
-            ),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text('Grand Total',
+        build: (pw.Context context) {
+          return [
+            // Header
+            pw.Header(
+              level: 0,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Monthly Sellers Report',
                     style: pw.TextStyle(
-                        fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 10),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        fontSize: 24, fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    '${DateFormat.MMMM().format(DateTime(0, month))} $year',
+                    style: pw.TextStyle(fontSize: 16, color: PdfColors.grey700),
+                  ),
+                  pw.Divider(thickness: 2),
+                ],
+              ),
+            ),
+
+            // ✅ NET GAIN SECTION
+            pw.Container(
+              padding: const pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey200,
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Monthly Net Gain',
+                    style: pw.TextStyle(
+                        fontSize: 18, fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    'Total Gain from Payments: \$${totalGainFromPayments.toStringAsFixed(2)}',
+                    style: const pw.TextStyle(fontSize: 14),
+                  ),
+                  pw.Text(
+                    'Net Gain: \$${totalGainFromPayments.toStringAsFixed(2)}',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                      color: totalGainFromPayments >= 0
+                          ? PdfColors.green
+                          : PdfColors.red,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Note: This shows only seller payments. Driver costs and personal expenses should be subtracted for final net gain.',
+                    style: pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey600,
+                        fontStyle: pw.FontStyle.italic),
+                  ),
+                ],
+              ),
+            ),
+
+            pw.SizedBox(height: 20),
+
+            // Sellers Table
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey400),
+              children: [
+                // Header Row
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey300),
                   children: [
-                    pw.Text('Total Revenue:',
-                        style: pw.TextStyle(
-                            fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                    pw.Text('\$${grandTotalRevenue.toStringAsFixed(2)}',
-                        style: const pw.TextStyle(fontSize: 14)),
+                    _buildTableCell('Seller Name', isHeader: true),
+                    _buildTableCell('Total Owed', isHeader: true),
+                    _buildTableCell('Monthly Gain', isHeader: true),
                   ],
                 ),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('Total Cost:',
-                        style: pw.TextStyle(
-                            fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                    pw.Text('\$${grandTotalCost.toStringAsFixed(2)}',
-                        style: const pw.TextStyle(fontSize: 14)),
-                  ],
-                ),
-                pw.Divider(thickness: 2),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text('Net Gain:',
-                        style: pw.TextStyle(
-                            fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                    pw.Text('\$${grandTotalGain.toStringAsFixed(2)}',
-                        style: pw.TextStyle(
-                            fontSize: 16,
-                            fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.blue)),
-                  ],
-                ),
+                // Data Rows
+                ...sellers.map((seller) {
+                  final monthlyGain =
+                      seller.getActualMonthlyGain(month: month, year: year);
+                  return pw.TableRow(
+                    children: [
+                      _buildTableCell(seller.name),
+                      _buildTableCell(
+                          '\$${seller.getTotalOwed().toStringAsFixed(2)}'),
+                      _buildTableCell(
+                        '\$${monthlyGain.toStringAsFixed(2)}',
+                        textColor:
+                            monthlyGain >= 0 ? PdfColors.green : PdfColors.red,
+                      ),
+                    ],
+                  );
+                }).toList(),
               ],
             ),
-          ),
-          pw.SizedBox(height: 20),
-          pw.Text(
-            'Generated on ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}',
-            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey),
-          ),
-        ],
+
+            pw.SizedBox(height: 20),
+
+            // Summary
+            pw.Container(
+              padding: const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey400),
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Summary',
+                    style: pw.TextStyle(
+                        fontSize: 16, fontWeight: pw.FontWeight.bold),
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text('Total Sellers: ${sellers.length}'),
+                  pw.Text(
+                      'Total Owed (All Time): \$${sellers.fold(0.0, (sum, s) => sum + s.getTotalOwed()).toStringAsFixed(2)}'),
+                  pw.Text(
+                      'Total Monthly Gain: \$${totalGainFromPayments.toStringAsFixed(2)}'),
+                ],
+              ),
+            ),
+
+            // Footer
+            pw.SizedBox(height: 20),
+            pw.Text(
+              'Generated on: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+              style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+            ),
+          ];
+        },
       ),
     );
 
+    // Save PDF
     final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/AllSellers_${month}_$year.pdf';
-    final file = File(filePath);
+    final file =
+        File('${directory.path}/all_sellers_report_${month}_$year.pdf');
     await file.writeAsBytes(await pdf.save());
 
     return file;
+  }
+
+  // Helper method for table cells
+  pw.Widget _buildTableCell(String text,
+      {bool isHeader = false, PdfColor? textColor}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(8),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          fontSize: isHeader ? 12 : 10,
+          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+          color: textColor,
+        ),
+      ),
+    );
   }
 }

@@ -97,8 +97,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     tag: 'seller_${widget.seller.id}',
                     child: Text(widget.seller.name),
                   ),
-                  Text(
-                      '${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear Gain: \$${monthlyActualGain.toStringAsFixed(2)}'),
+                  Text(' Gain: \$${monthlyActualGain.toStringAsFixed(2)}'),
                 ],
               );
             }

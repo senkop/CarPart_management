@@ -49,6 +49,13 @@ class _SellerScreenState extends State<SellerScreen> {
 
   final ReportService _reportService = ReportService();
 
+  // ✅ ADD THIS METHOD to force full widget rebuild
+  void _updateFilter() {
+    setState(() {
+      // This will rebuild the entire Scaffold including AppBar
+    });
+  }
+
   List<Map<String, dynamic>> calculateMonthlyGains(
       SellerState sellerState, BuildContext context) {
     if (sellerState is! SellerLoaded) return [];
@@ -112,48 +119,134 @@ class _SellerScreenState extends State<SellerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ CALCULATE OUTSIDE BlocBuilder
+    double netGain = 0.0;
+
+    final sellerState =
+        context.watch<SellerCubit>().state; // ✅ Use watch instead of read
+
+    if (sellerState is SellerLoaded) {
+      final totalGainFromPayments =
+          sellerState.sellers.fold(0.0, (sum, seller) {
+        return sum +
+            seller.getActualMonthlyGain(
+                month: selectedMonth, year: selectedYear);
+      });
+
+      final driverState = context.watch<DriverCubit>().state; // ✅ Use watch
+      final totalDriverCost = driverState is DriverLoaded
+          ? driverState.drivers.fold(0.0, (sum, driver) {
+              final monthlyCost = driver.trips
+                  .where((trip) =>
+                      trip.date.month == selectedMonth &&
+                      trip.date.year == selectedYear)
+                  .fold(0.0, (sum, trip) => sum + trip.cost);
+              return sum + monthlyCost;
+            })
+          : 0.0;
+
+      final personalState =
+          context.watch<PersonalSpendCubit>().state; // ✅ Use watch
+      final totalPersonalPaid = personalState is PersonalSpendLoaded
+          ? personalState.personalSpends.fold(0.0, (sum, personalSpend) {
+              final monthlyCost = personalSpend.date.month == selectedMonth &&
+                      personalSpend.date.year == selectedYear
+                  ? personalSpend.amount
+                  : 0.0;
+              return sum + monthlyCost;
+            })
+          : 0.0;
+
+      netGain = totalGainFromPayments - totalDriverCost - totalPersonalPaid;
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
+        // ✅ ADD KEY TO FORCE REBUILD
+        key: ValueKey('${selectedMonth}_$selectedYear'),
         title: Center(
-          child: BlocBuilder<SellerCubit, SellerState>(
-            builder: (context, sellerState) {
-              if (sellerState is SellerLoaded) {
-                final monthlyGains =
-                    calculateMonthlyGains(sellerState, context);
-                final currentMonth = DateTime.now().month;
-                final currentMonthGain = monthlyGains.firstWhere(
-                    (gain) => gain['month'] == currentMonth)['netGain'];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MonthlyGainsScreen(),
+          // ✅ WRAP WITH ANOTHER BUILDER TO FORCE RECALCULATION
+          child: Builder(
+            builder: (builderContext) {
+              return BlocBuilder<SellerCubit, SellerState>(
+                builder: (context, sellerState) {
+                  if (sellerState is SellerLoaded) {
+                    // ✅ CALCULATE FOR THE SELECTED MONTH
+                    final totalGainFromPayments =
+                        sellerState.sellers.fold(0.0, (sum, seller) {
+                      return sum +
+                          seller.getActualMonthlyGain(
+                              month: selectedMonth, year: selectedYear);
+                    });
+
+                    final totalDriverCost = context.read<DriverCubit>().state
+                            is DriverLoaded
+                        ? (context.read<DriverCubit>().state as DriverLoaded)
+                            .drivers
+                            .fold(0.0, (sum, driver) {
+                            final monthlyCost = driver.trips
+                                .where((trip) =>
+                                    trip.date.month == selectedMonth &&
+                                    trip.date.year == selectedYear)
+                                .fold(0.0, (sum, trip) => sum + trip.cost);
+                            return sum + monthlyCost;
+                          })
+                        : 0.0;
+
+                    final totalPersonalPaid = context
+                            .read<PersonalSpendCubit>()
+                            .state is PersonalSpendLoaded
+                        ? (context.read<PersonalSpendCubit>().state
+                                as PersonalSpendLoaded)
+                            .personalSpends
+                            .fold(0.0, (sum, personalSpend) {
+                            final monthlyCost =
+                                personalSpend.date.month == selectedMonth &&
+                                        personalSpend.date.year == selectedYear
+                                    ? personalSpend.amount
+                                    : 0.0;
+                            return sum + monthlyCost;
+                          })
+                        : 0.0;
+
+                    final netGain = totalGainFromPayments -
+                        totalDriverCost -
+                        totalPersonalPaid;
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MonthlyGainsScreen(),
+                          ),
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'Net Monthly Gain:',
+                            style: TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear: \$${netGain.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: netGain >= 0 ? Colors.green : Colors.red,
+                            ),
+                          ),
+                        ],
                       ),
                     );
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Net Monthly Gain:',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '${DateFormat.MMMM().format(DateTime(0, currentMonth))} ${DateTime.now().year}: \$${currentMonthGain.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              return const Text('Sellers');
+                  }
+                  return const Text('Sellers');
+                },
+              );
             },
           ),
         ),
@@ -179,14 +272,6 @@ class _SellerScreenState extends State<SellerScreen> {
               return const SizedBox.shrink();
             },
           ),
-          // ✅ ADD THIS: Calculate Monthly Gain Button
-          IconButton(
-            icon: const Icon(Icons.calculate),
-            tooltip: 'Calculate Monthly Gain',
-            onPressed: () {
-              _showMonthlyGainCalculatorDialog(context);
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -201,7 +286,7 @@ class _SellerScreenState extends State<SellerScreen> {
       ),
       body: Column(
         children: [
-          // ✅ ADD THIS: Month/Year Selector
+          // Month/Year Selector
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -228,6 +313,7 @@ class _SellerScreenState extends State<SellerScreen> {
                       setState(() {
                         selectedMonth = value!;
                       });
+                      _updateFilter(); // ✅ Force rebuild
                     },
                   ),
                 ),
@@ -248,6 +334,7 @@ class _SellerScreenState extends State<SellerScreen> {
                       setState(() {
                         selectedYear = value!;
                       });
+                      _updateFilter(); // ✅ Force rebuild
                     },
                   ),
                 ),
