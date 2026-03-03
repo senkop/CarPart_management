@@ -160,6 +160,32 @@ class _SellerScreenState extends State<SellerScreen> {
       netGain = totalGainFromPayments - totalDriverCost - totalPersonalPaid;
     }
 
+    // ✅ ADD THESE LISTENERS at the top of build() method
+
+    // Listen to driver changes
+    context.select<DriverCubit, DriverState>((cubit) {
+      final state = cubit.state;
+      if (state is DriverLoaded) {
+        // Trigger auto-save when drivers change
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _autoSaveCurrentMonthGain(context);
+        });
+      }
+      return state;
+    });
+
+    // Listen to personal expense changes
+    context.select<PersonalSpendCubit, PersonalSpendState>((cubit) {
+      final state = cubit.state;
+      if (state is PersonalSpendLoaded) {
+        // Trigger auto-save when expenses change
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _autoSaveCurrentMonthGain(context);
+        });
+      }
+      return state;
+    });
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -419,9 +445,8 @@ class _SellerScreenState extends State<SellerScreen> {
             child: BlocConsumer<SellerCubit, SellerState>(
               listener: (context, state) {
                 if (state is SellerLoaded) {
-                  // ScaffoldMessenger.of(context).showSnackBar(
-                  //   SnackBar(content: const Text('Sellers updated') ),
-                  // );
+                  // ✅ ADD THIS LINE - Auto-save whenever sellers change
+                  _autoSaveCurrentMonthGain(context);
                 }
               },
               builder: (context, state) {
@@ -1114,5 +1139,75 @@ class _SellerScreenState extends State<SellerScreen> {
     }
 
     return totalMonthlyGain;
+  }
+
+  /// Auto-save current month's gain whenever data changes
+  void _autoSaveCurrentMonthGain(BuildContext context) {
+    final sellerState = context.read<SellerCubit>().state;
+    if (sellerState is! SellerLoaded) return;
+
+    final currentMonth = DateTime.now().month;
+    final currentYear = DateTime.now().year;
+
+    // Calculate gain for car parts ADDED in current month
+    double totalGainFromPayments = 0.0;
+
+    for (var seller in sellerState.sellers) {
+      final carPartsForMonth = seller.carParts.where((carPart) {
+        return carPart.dateAdded.month == currentMonth &&
+            carPart.dateAdded.year == currentYear;
+      }).toList();
+
+      for (var carPart in carPartsForMonth) {
+        final totalSellingPrice = carPart.price * carPart.quantity;
+        final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
+
+        double totalPayments =
+            carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
+
+        if (totalPayments > 0 && totalSellingPrice > 0) {
+          final paymentPercentage = totalPayments / totalSellingPrice;
+          final proportionalCost = totalPurchasePrice * paymentPercentage;
+          final actualGain = totalPayments - proportionalCost;
+          totalGainFromPayments += actualGain;
+        }
+      }
+    }
+
+    final driverState = context.read<DriverCubit>().state;
+    final totalDriverCost = driverState is DriverLoaded
+        ? driverState.drivers.fold(0.0, (sum, driver) {
+            final monthlyCost = driver.trips
+                .where((trip) =>
+                    trip.date.month == currentMonth &&
+                    trip.date.year == currentYear)
+                .fold(0.0, (sum, trip) => sum + trip.cost);
+            return sum + monthlyCost;
+          })
+        : 0.0;
+
+    final personalState = context.read<PersonalSpendCubit>().state;
+    final totalPersonalPaid = personalState is PersonalSpendLoaded
+        ? personalState.personalSpends.fold(0.0, (sum, personalSpend) {
+            final monthlyCost = personalSpend.date.month == currentMonth &&
+                    personalSpend.date.year == currentYear
+                ? personalSpend.amount
+                : 0.0;
+            return sum + monthlyCost;
+          })
+        : 0.0;
+
+    final netGain = totalGainFromPayments - totalDriverCost - totalPersonalPaid;
+
+    // Save to Firebase
+    final monthlyGainsData = MonthlyGains(
+      month: currentMonth,
+      year: currentYear,
+      netGain: netGain,
+    );
+
+    widget._monthlyGainsRepository.saveMonthlyGains(monthlyGainsData);
+
+    print('💾 Auto-saved current month: \$${netGain.toStringAsFixed(2)}');
   }
 }
