@@ -651,22 +651,20 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
 
     print('🔄 Starting Clean Recalculation...\n');
 
-    // Step 1: Find date range
+    // Step 1: Find date range from car parts dateAdded
     DateTime? earliestDate;
     final now = DateTime.now();
 
     for (var seller in sellerState.sellers) {
       for (var carPart in seller.carParts) {
-        for (var payment in carPart.payments) {
-          if (earliestDate == null || payment.date.isBefore(earliestDate)) {
-            earliestDate = payment.date;
-          }
+        if (earliestDate == null || carPart.dateAdded.isBefore(earliestDate)) {
+          earliestDate = carPart.dateAdded;
         }
       }
     }
 
     if (earliestDate == null) {
-      print('⚠️ No payment data found');
+      print('⚠️ No car parts found');
       return;
     }
 
@@ -683,20 +681,44 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
         print('📅 Month: $month/$year');
         print('=' * 50);
 
-        // ✅ A. Calculate ACTUAL GAINS from sellers (sum of all car part actual gains)
+        // ✅ A. Calculate gain from car parts ADDED in this month
         double totalActualGain = 0.0;
-        for (var seller in sellerState.sellers) {
-          final sellerActualGain = seller.getActualMonthlyGain(
-            month: month,
-            year: year,
-          );
 
-          if (sellerActualGain != 0) {
+        for (var seller in sellerState.sellers) {
+          // ✅ Filter car parts by dateAdded
+          final carPartsForMonth = seller.carParts.where((carPart) {
+            return carPart.dateAdded.month == month &&
+                carPart.dateAdded.year == year;
+          }).toList();
+
+          double sellerGain = 0.0;
+
+          for (var carPart in carPartsForMonth) {
+            final totalSellingPrice = carPart.price * carPart.quantity;
+            final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
+
+            // Count ALL payments for this car part
+            double totalPayments = carPart.payments
+                .fold(0.0, (sum, payment) => sum + payment.amount);
+
+            if (totalPayments > 0 && totalSellingPrice > 0) {
+              final paymentPercentage = totalPayments / totalSellingPrice;
+              final proportionalCost = totalPurchasePrice * paymentPercentage;
+              final actualGain = totalPayments - proportionalCost;
+              sellerGain += actualGain;
+
+              print(
+                  '   📦 ${carPart.name}: \$${actualGain.toStringAsFixed(2)}');
+            }
+          }
+
+          if (sellerGain != 0) {
             print(
-                '💰 ${seller.name} Actual Gain: \$${sellerActualGain.toStringAsFixed(2)}');
-            totalActualGain += sellerActualGain;
+                '💰 ${seller.name} Total: \$${sellerGain.toStringAsFixed(2)}');
+            totalActualGain += sellerGain;
           }
         }
+
         print('✅ Total Actual Gain: \$${totalActualGain.toStringAsFixed(2)}\n');
 
         // B. Calculate driver costs
@@ -752,7 +774,7 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
         print('═' * 50);
         print('\n');
 
-        // E. Save to Firebase (only if there was activity)
+        // E. Save to Firebase
         if (totalActualGain != 0 ||
             totalDriverCosts > 0 ||
             totalPersonalExpenses > 0) {

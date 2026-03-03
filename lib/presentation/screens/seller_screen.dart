@@ -173,13 +173,35 @@ class _SellerScreenState extends State<SellerScreen> {
               return BlocBuilder<SellerCubit, SellerState>(
                 builder: (context, sellerState) {
                   if (sellerState is SellerLoaded) {
-                    // ✅ CALCULATE FOR THE SELECTED MONTH
-                    final totalGainFromPayments =
-                        sellerState.sellers.fold(0.0, (sum, seller) {
-                      return sum +
-                          seller.getActualMonthlyGain(
-                              month: selectedMonth, year: selectedYear);
-                    });
+                    // ✅ Calculate gain for car parts ADDED in selected month
+                    double totalGainFromPayments = 0.0;
+
+                    for (var seller in sellerState.sellers) {
+                      // Filter car parts by dateAdded
+                      final carPartsForMonth = seller.carParts.where((carPart) {
+                        return carPart.dateAdded.month == selectedMonth &&
+                            carPart.dateAdded.year == selectedYear;
+                      }).toList();
+
+                      // Calculate gain from ALL payments for these car parts
+                      for (var carPart in carPartsForMonth) {
+                        final totalSellingPrice =
+                            carPart.price * carPart.quantity;
+                        final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
+
+                        double totalPayments = carPart.payments
+                            .fold(0.0, (sum, payment) => sum + payment.amount);
+
+                        if (totalPayments > 0 && totalSellingPrice > 0) {
+                          final paymentPercentage =
+                              totalPayments / totalSellingPrice;
+                          final proportionalCost =
+                              totalPurchasePrice * paymentPercentage;
+                          final actualGain = totalPayments - proportionalCost;
+                          totalGainFromPayments += actualGain;
+                        }
+                      }
+                    }
 
                     final totalDriverCost = context.read<DriverCubit>().state
                             is DriverLoaded
@@ -420,6 +442,11 @@ class _SellerScreenState extends State<SellerScreen> {
                             itemCount: state.sellers.length,
                             itemBuilder: (context, index) {
                               final seller = state.sellers[index];
+                              // ✅ Calculate monthly gain for selected month
+                              final monthlyGain =
+                                  _calculateMonthlyGainForPayments(
+                                      seller, selectedMonth, selectedYear);
+
                               return GestureDetector(
                                 onTap: () {
                                   Navigator.push(
@@ -460,7 +487,7 @@ class _SellerScreenState extends State<SellerScreen> {
                                         Text(
                                             'Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}'),
                                         Text(
-                                            'Monthly Gain: \$${seller.getActualMonthlyGain(month: selectedMonth, year: selectedYear).toStringAsFixed(2)}'),
+                                            'Monthly Gain: \$${monthlyGain.toStringAsFixed(2)}'), // ✅ FIXED
                                         Row(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
@@ -510,6 +537,11 @@ class _SellerScreenState extends State<SellerScreen> {
                           itemCount: state.sellers.length,
                           itemBuilder: (context, index) {
                             final seller = state.sellers[index];
+                            // ✅ Calculate monthly gain for selected month
+                            final monthlyGain =
+                                _calculateMonthlyGainForPayments(
+                                    seller, selectedMonth, selectedYear);
+
                             return Container(
                               margin: const EdgeInsets.symmetric(
                                   vertical: 8.0, horizontal: 16.0),
@@ -533,7 +565,7 @@ class _SellerScreenState extends State<SellerScreen> {
                                     Text(
                                         'Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}'),
                                     Text(
-                                        'Monthly Gain: \$${seller.getActualMonthlyGain(month: selectedMonth, year: selectedYear).toStringAsFixed(2)}',
+                                        'Monthly Gain: \$${monthlyGain.toStringAsFixed(2)}', // ✅ FIXED
                                         style: const TextStyle(
                                           color: Colors.green,
                                           fontWeight: FontWeight.bold,
@@ -1052,5 +1084,35 @@ class _SellerScreenState extends State<SellerScreen> {
         ),
       );
     }
+  }
+
+  /// Calculate monthly gain ONLY from payments received in the selected month
+  /// Calculate monthly gain ONLY from car parts ADDED in the selected month
+  double _calculateMonthlyGainForPayments(Seller seller, int month, int year) {
+    double totalMonthlyGain = 0.0;
+
+    // ✅ FILTER car parts by dateAdded FIRST
+    final carPartsForSelectedMonth = seller.carParts.where((carPart) {
+      return carPart.dateAdded.month == month && carPart.dateAdded.year == year;
+    }).toList();
+
+    // ✅ Only loop through car parts ADDED in this month
+    for (var carPart in carPartsForSelectedMonth) {
+      final totalSellingPrice = carPart.price * carPart.quantity;
+      final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
+
+      // Count ALL payments for this car part (not just this month)
+      double totalPayments =
+          carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
+
+      if (totalPayments > 0 && totalSellingPrice > 0) {
+        final paymentPercentage = totalPayments / totalSellingPrice;
+        final proportionalCost = totalPurchasePrice * paymentPercentage;
+        final actualGain = totalPayments - proportionalCost;
+        totalMonthlyGain += actualGain;
+      }
+    }
+
+    return totalMonthlyGain;
   }
 }

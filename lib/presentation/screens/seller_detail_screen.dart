@@ -52,10 +52,18 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               final updatedSeller =
                   state.sellers.firstWhere((s) => s.id == widget.seller.id);
 
-              // ✅ Calculate actual gain for SELECTED MONTH/YEAR ONLY
+              // ✅ FIX: FILTER car parts by SELECTED MONTH first!
+              final carPartsForSelectedMonth =
+                  updatedSeller.carParts.where((carPart) {
+                return carPart.dateAdded.month == selectedMonth &&
+                    carPart.dateAdded.year == selectedYear;
+              }).toList();
+
+              // ✅ Calculate actual gain for SELECTED MONTH ONLY
               double monthlyActualGain = 0.0;
 
-              for (var carPart in updatedSeller.carParts) {
+              // ✅ LOOP ONLY THROUGH FILTERED CAR PARTS
+              for (var carPart in carPartsForSelectedMonth) {
                 final totalSellingPrice = carPart.price * carPart.quantity;
                 final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
@@ -97,7 +105,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     tag: 'seller_${widget.seller.id}',
                     child: Text(widget.seller.name),
                   ),
-                  Text(' Gain: \$${monthlyActualGain.toStringAsFixed(2)}'),
+                  Text(
+                    '${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear Gain: \$${monthlyActualGain.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: monthlyActualGain >= 0 ? Colors.green : Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               );
             }
