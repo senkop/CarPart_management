@@ -50,7 +50,7 @@ class ReportService {
       cell.cellStyle = headerStyle;
     }
 
-    // Filter car parts for selected month
+    // ✅ Filter car parts ADDED in selected month
     final monthlyCarParts = seller.carParts
         .where((part) =>
             part.dateAdded.month == month && part.dateAdded.year == year)
@@ -64,23 +64,19 @@ class ReportService {
     // Data rows
     for (var carPart in monthlyCarParts) {
       final totalSellingPrice = carPart.price * carPart.quantity;
-      final totalPurchasePrice = carPart.purchasePrice;
+      final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
-      // Calculate monthly payments
-      double monthlyPayments = 0.0;
-      for (var payment in carPart.payments) {
-        if (payment.date.month == month && payment.date.year == year) {
-          monthlyPayments += payment.amount;
-        }
-      }
+      // ✅ Count ALL payments for this car part (not just this month)
+      double totalPayments =
+          carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
 
-      // Calculate actual gain for this month
-      final monthlyPaymentPercentage =
-          totalSellingPrice > 0 ? monthlyPayments / totalSellingPrice : 0.0;
-      final proportionalCost = totalPurchasePrice * monthlyPaymentPercentage;
-      final actualGain = monthlyPayments - proportionalCost;
+      // Calculate actual gain based on ALL payments
+      final paymentPercentage =
+          totalSellingPrice > 0 ? totalPayments / totalSellingPrice : 0.0;
+      final proportionalCost = totalPurchasePrice * paymentPercentage;
+      final actualGain = totalPayments - proportionalCost;
 
-      totalRevenue += monthlyPayments;
+      totalRevenue += totalPayments;
       totalCost += proportionalCost;
       totalGain += actualGain;
 
@@ -95,7 +91,7 @@ class ReportService {
           .value = TextCellValue('\$${totalPurchasePrice.toStringAsFixed(2)}');
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .value = TextCellValue('\$${monthlyPayments.toStringAsFixed(2)}');
+          .value = TextCellValue('\$${totalPayments.toStringAsFixed(2)}');
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
           .value = TextCellValue('\$${carPart.amountOwed.toStringAsFixed(2)}');
@@ -151,7 +147,7 @@ class ReportService {
   ) async {
     final pdf = pw.Document();
 
-    // Filter car parts for selected month
+    // ✅ Filter car parts ADDED in selected month
     final monthlyCarParts = seller.carParts
         .where((part) =>
             part.dateAdded.month == month && part.dateAdded.year == year)
@@ -165,23 +161,19 @@ class ReportService {
 
     for (var carPart in monthlyCarParts) {
       final totalSellingPrice = carPart.price * carPart.quantity;
-      final totalPurchasePrice = carPart.purchasePrice;
+      final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
-      // Calculate monthly payments
-      double monthlyPayments = 0.0;
-      for (var payment in carPart.payments) {
-        if (payment.date.month == month && payment.date.year == year) {
-          monthlyPayments += payment.amount;
-        }
-      }
+      // ✅ Count ALL payments for this car part
+      double totalPayments =
+          carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
 
       // Calculate actual gain
-      final monthlyPaymentPercentage =
-          totalSellingPrice > 0 ? monthlyPayments / totalSellingPrice : 0.0;
-      final proportionalCost = totalPurchasePrice * monthlyPaymentPercentage;
-      final actualGain = monthlyPayments - proportionalCost;
+      final paymentPercentage =
+          totalSellingPrice > 0 ? totalPayments / totalSellingPrice : 0.0;
+      final proportionalCost = totalPurchasePrice * paymentPercentage;
+      final actualGain = totalPayments - proportionalCost;
 
-      totalRevenue += monthlyPayments;
+      totalRevenue += totalPayments;
       totalCost += proportionalCost;
       totalGain += actualGain;
 
@@ -189,7 +181,7 @@ class ReportService {
         carPart.name,
         '\$${totalSellingPrice.toStringAsFixed(2)}',
         '\$${totalPurchasePrice.toStringAsFixed(2)}',
-        '\$${monthlyPayments.toStringAsFixed(2)}',
+        '\$${totalPayments.toStringAsFixed(2)}',
         '\$${carPart.amountOwed.toStringAsFixed(2)}',
         '\$${actualGain.toStringAsFixed(2)}',
       ]);
@@ -348,6 +340,7 @@ class ReportService {
     double grandTotalGain = 0;
 
     for (var seller in sellers) {
+      // ✅ Filter car parts ADDED in selected month
       final monthlyCarParts = seller.carParts
           .where((part) =>
               part.dateAdded.month == month && part.dateAdded.year == year)
@@ -359,21 +352,18 @@ class ReportService {
 
       for (var carPart in monthlyCarParts) {
         final totalSellingPrice = carPart.price * carPart.quantity;
-        final totalPurchasePrice = carPart.purchasePrice;
+        final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
-        double monthlyPayments = 0.0;
-        for (var payment in carPart.payments) {
-          if (payment.date.month == month && payment.date.year == year) {
-            monthlyPayments += payment.amount;
-          }
-        }
+        // ✅ Count ALL payments for this car part
+        double totalPayments =
+            carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
 
-        final monthlyPaymentPercentage =
-            totalSellingPrice > 0 ? monthlyPayments / totalSellingPrice : 0.0;
-        final proportionalCost = totalPurchasePrice * monthlyPaymentPercentage;
-        final actualGain = monthlyPayments - proportionalCost;
+        final paymentPercentage =
+            totalSellingPrice > 0 ? totalPayments / totalSellingPrice : 0.0;
+        final proportionalCost = totalPurchasePrice * paymentPercentage;
+        final actualGain = totalPayments - proportionalCost;
 
-        sellerRevenue += monthlyPayments;
+        sellerRevenue += totalPayments;
         sellerCost += proportionalCost;
         sellerGain += actualGain;
       }
@@ -452,18 +442,42 @@ class ReportService {
   ) async {
     final pdf = pw.Document();
 
-    // ✅ CALCULATE NET GAIN USING THE SAME LOGIC AS SELLER_SCREEN
+    // ✅ Calculate gain for car parts ADDED in selected month
     double totalGainFromPayments = 0.0;
+    final sellerData = <Map<String, dynamic>>[];
 
-    // Calculate total gain from ALL sellers for this specific month
     for (final seller in sellers) {
-      totalGainFromPayments +=
-          seller.getActualMonthlyGain(month: month, year: year);
-    }
+      // Filter car parts ADDED in this month
+      final carPartsForMonth = seller.carParts.where((carPart) {
+        return carPart.dateAdded.month == month &&
+            carPart.dateAdded.year == year;
+      }).toList();
 
-    // TODO: You need to pass driver costs and personal expenses here
-    // For now, we'll just show the seller gains
-    // You should pass these as parameters or fetch them in this method
+      double sellerGain = 0.0;
+
+      for (var carPart in carPartsForMonth) {
+        final totalSellingPrice = carPart.price * carPart.quantity;
+        final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
+
+        // Count ALL payments
+        double totalPayments =
+            carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
+
+        if (totalPayments > 0 && totalSellingPrice > 0) {
+          final paymentPercentage = totalPayments / totalSellingPrice;
+          final proportionalCost = totalPurchasePrice * paymentPercentage;
+          final actualGain = totalPayments - proportionalCost;
+          sellerGain += actualGain;
+        }
+      }
+
+      totalGainFromPayments += sellerGain;
+      sellerData.add({
+        'name': seller.name,
+        'owed': seller.getTotalOwed(),
+        'gain': sellerGain,
+      });
+    }
 
     pdf.addPage(
       pw.MultiPage(
@@ -508,11 +522,7 @@ class ReportService {
                   ),
                   pw.SizedBox(height: 8),
                   pw.Text(
-                    'Total Gain from Payments: \$${totalGainFromPayments.toStringAsFixed(2)}',
-                    style: const pw.TextStyle(fontSize: 14),
-                  ),
-                  pw.Text(
-                    'Net Gain: \$${totalGainFromPayments.toStringAsFixed(2)}',
+                    'Total Gain from Car Parts Added This Month: \$${totalGainFromPayments.toStringAsFixed(2)}',
                     style: pw.TextStyle(
                       fontSize: 16,
                       fontWeight: pw.FontWeight.bold,
@@ -523,7 +533,7 @@ class ReportService {
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
-                    'Note: This shows only seller payments. Driver costs and personal expenses should be subtracted for final net gain.',
+                    'Note: This shows gain from car parts added in ${DateFormat.MMMM().format(DateTime(0, month))} $year (including all their payments). Driver costs and personal expenses should be subtracted for final net gain.',
                     style: pw.TextStyle(
                         fontSize: 10,
                         color: PdfColors.grey600,
@@ -549,14 +559,13 @@ class ReportService {
                   ],
                 ),
                 // Data Rows
-                ...sellers.map((seller) {
-                  final monthlyGain =
-                      seller.getActualMonthlyGain(month: month, year: year);
+                ...sellerData.map((data) {
+                  final monthlyGain = data['gain'] as double;
                   return pw.TableRow(
                     children: [
-                      _buildTableCell(seller.name),
+                      _buildTableCell(data['name'] as String),
                       _buildTableCell(
-                          '\$${seller.getTotalOwed().toStringAsFixed(2)}'),
+                          '\$${(data['owed'] as double).toStringAsFixed(2)}'),
                       _buildTableCell(
                         '\$${monthlyGain.toStringAsFixed(2)}',
                         textColor:
