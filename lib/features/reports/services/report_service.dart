@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:elshaf3y_store/features/car_parts_feature/data/models/car_parts_model.dart';
 import 'package:excel/excel.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -7,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/seller_model.dart';
 import 'package:elshaf3y_store/features/transaction_feature/data/models/transaction_model.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class ReportService {
   // ============= SINGLE SELLER REPORTS =============
@@ -1078,6 +1081,395 @@ class ReportService {
             value,
             style: pw.TextStyle(
                 fontSize: 14, fontWeight: pw.FontWeight.bold, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Generate Invoice/Receipt for a single car part sale
+  Future<File> generateInvoiceForCarPart({
+    required CarPart carPart,
+    required String sellerName,
+    required String sellerId,
+  }) async {
+    final pdf = pw.Document();
+
+    // Load logo
+    Uint8List? logoBytes;
+    try {
+      final ByteData data = await rootBundle.load('assets/Logo3.png');
+      logoBytes = data.buffer.asUint8List();
+    } catch (e) {
+      print('Logo not found: $e');
+    }
+
+    final totalSellingPrice = carPart.getTotalSellingPrice();
+    final totalPurchaseCost = carPart.getTotalPurchasePrice();
+    final totalPaid = carPart.getTotalPayments();
+    final amountOwed = carPart.amountOwed;
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header with Logo
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // Logo
+                  if (logoBytes != null)
+                    pw.Image(
+                      pw.MemoryImage(logoBytes),
+                      width: 80,
+                      height: 80,
+                    )
+                  else
+                    pw.Container(
+                      width: 80,
+                      height: 80,
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.blue,
+                        borderRadius: pw.BorderRadius.circular(8),
+                      ),
+                      child: pw.Center(
+                        child: pw.Text(
+                          'LOGO',
+                          style: pw.TextStyle(
+                            color: PdfColors.white,
+                            fontSize: 20,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Invoice Info - ✅ REMOVED Invoice # and Customer ID
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text(
+                        'INVOICE',
+                        style: pw.TextStyle(
+                          fontSize: 32,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.blue900,
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        'Date: ${DateFormat('dd/MM/yyyy').format(carPart.dateAdded)}',
+                        style: const pw.TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 30),
+
+              // Customer Info - ✅ REMOVED Customer ID
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'BILL TO:',
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      sellerName,
+                      style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 30),
+
+              // Car/Item Header
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue50,
+                  borderRadius: pw.BorderRadius.circular(8),
+                  border: pw.Border.all(color: PdfColors.blue200),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      carPart.name,
+                      style: pw.TextStyle(
+                        fontSize: 20,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900,
+                      ),
+                    ),
+                    if (carPart.description.isNotEmpty) ...[
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        carPart.description,
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          color: PdfColors.grey700,
+                          fontStyle: pw.FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // Items Table - ✅ CENTERED & CLEAN SUB-ITEMS
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey400),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(3),
+                  1: const pw.FlexColumnWidth(1),
+                  2: const pw.FlexColumnWidth(1.5),
+                  3: const pw.FlexColumnWidth(1.5),
+                },
+                children: [
+                  // Header
+                  pw.TableRow(
+                    decoration:
+                        const pw.BoxDecoration(color: PdfColors.grey300),
+                    children: [
+                      _buildInvoiceTableCell('Item', isHeader: true),
+                      _buildInvoiceTableCell('Qty', isHeader: true),
+                      _buildInvoiceTableCell('Unit Price', isHeader: true),
+                      _buildInvoiceTableCell('Total', isHeader: true),
+                    ],
+                  ),
+
+                  // Main Item
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.white),
+                    children: [
+                      _buildInvoiceTableCell('Main Item', centered: false),
+                      _buildInvoiceTableCell('${carPart.quantity}'),
+                      _buildInvoiceTableCell(
+                          '\$${carPart.price.toStringAsFixed(2)}'),
+                      _buildInvoiceTableCell(
+                        '\$${(carPart.price * carPart.quantity).toStringAsFixed(2)}',
+                        bold: true,
+                      ),
+                    ],
+                  ),
+
+                  // Sub-Items - ✅ CLEAN & CENTERED
+                  ...carPart.subItems.map((subItem) => pw.TableRow(
+                        decoration: pw.BoxDecoration(color: PdfColors.blue50),
+                        children: [
+                          _buildInvoiceTableCell(subItem.name,
+                              centered: false,
+                              fontSize: 9), // ✅ No bullets or numbers
+                          _buildInvoiceTableCell('${subItem.quantity}',
+                              fontSize: 9),
+                          _buildInvoiceTableCell(
+                              '\$${subItem.price.toStringAsFixed(2)}',
+                              fontSize: 9),
+                          _buildInvoiceTableCell(
+                            '\$${(subItem.price * subItem.quantity).toStringAsFixed(2)}',
+                            fontSize: 9,
+                            bold: true,
+                          ),
+                        ],
+                      )),
+                ],
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // Totals Section
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.start,
+                children: [
+                  pw.Container(
+                    width: 250,
+                    child: pw.Column(
+                      children: [
+                        _buildInvoiceTotalRow('Subtotal:', totalSellingPrice),
+                        pw.Divider(thickness: 1),
+                        _buildInvoiceTotalRow('Total Paid:', totalPaid,
+                            color: PdfColors.green700),
+                        _buildInvoiceTotalRow('Amount Owed:', amountOwed,
+                            color: PdfColors.red700),
+                        pw.Divider(thickness: 2),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(vertical: 8),
+                          decoration: pw.BoxDecoration(
+                            color: amountOwed > 0
+                                ? PdfColors.red50
+                                : PdfColors.green50,
+                            borderRadius: pw.BorderRadius.circular(4),
+                          ),
+                          child: _buildInvoiceTotalRow(
+                            'Balance Due:',
+                            amountOwed,
+                            color: amountOwed > 0
+                                ? PdfColors.red900
+                                : PdfColors.green900,
+                            bold: true,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              pw.Spacer(),
+
+              // Payment History
+              if (carPart.payments.isNotEmpty) ...[
+                pw.SizedBox(height: 20),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey50,
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: PdfColors.grey300),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'Payment History',
+                        style: pw.TextStyle(
+                          fontSize: 12,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.SizedBox(height: 8),
+                      ...carPart.payments.map((payment) => pw.Padding(
+                            padding: const pw.EdgeInsets.only(bottom: 4),
+                            child: pw.Row(
+                              mainAxisAlignment:
+                                  pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text(
+                                  DateFormat('dd/MM/yyyy').format(payment.date),
+                                  style: const pw.TextStyle(fontSize: 10),
+                                ),
+                                pw.Text(
+                                  '\$${payment.amount.toStringAsFixed(2)}',
+                                  style: pw.TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.green700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
+              ],
+
+              pw.SizedBox(height: 20),
+
+              // Footer
+              pw.Divider(),
+              pw.SizedBox(height: 10),
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text(
+                      'Thank you for your business!',
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Generated on ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+                      style: const pw.TextStyle(
+                          fontSize: 8, color: PdfColors.grey600),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File(
+        '${directory.path}/Invoice_${carPart.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    return file;
+  }
+
+  // ✅ UPDATED: Helper method with center alignment option
+  pw.Widget _buildInvoiceTableCell(String text,
+      {bool isHeader = false,
+      bool bold = false,
+      double fontSize = 10,
+      bool centered = true}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(8),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          fontSize: fontSize,
+          fontWeight:
+              (isHeader || bold) ? pw.FontWeight.bold : pw.FontWeight.normal,
+          color: isHeader ? PdfColors.black : null,
+        ),
+        textAlign: centered ? pw.TextAlign.center : pw.TextAlign.left,
+      ),
+    );
+  }
+
+  pw.Widget _buildInvoiceTotalRow(String label, double value,
+      {PdfColor? color, bool bold = false, double fontSize = 12}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: fontSize,
+              fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+            ),
+          ),
+          pw.Text(
+            '\$${value.toStringAsFixed(2)}',
+            style: pw.TextStyle(
+              fontSize: fontSize,
+              fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+              color: color,
+            ),
           ),
         ],
       ),

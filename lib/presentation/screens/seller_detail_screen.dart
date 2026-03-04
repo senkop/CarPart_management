@@ -486,14 +486,27 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                           builder: (context) =>
                               PaymentDetailsScreen(carPart: carPart)),
                     ),
-                    icon: const Icon(Icons.history, size: 18),
+                    icon: const Icon(Icons.history, size: 12),
                     label: const Text('History'),
                     style: TextButton.styleFrom(foregroundColor: Colors.blue),
                   ),
                   const SizedBox(width: 8),
+                  // ✅ NEW: Print Invoice Button
+                  ElevatedButton.icon(
+                    onPressed: () => _printInvoice(carPart),
+                    icon: const Icon(Icons.receipt_long, size: 12),
+                    label: const Text('Invoice'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.purple,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () => _showPaymentDialog(context, carPart),
-                    icon: const Icon(Icons.payment, size: 18),
+                    icon: const Icon(Icons.payment, size: 12),
                     label: const Text('Pay'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -1886,6 +1899,40 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('PDF saved: ${file.path}'),
+          backgroundColor: Colors.green,
+          action: SnackBarAction(
+            label: 'Open',
+            textColor: Colors.white,
+            onPressed: () => OpenFilex.open(file.path),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  Future<void> _printInvoice(CarPart carPart) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Generating invoice...')),
+      );
+
+      final file = await _reportService.generateInvoiceForCarPart(
+        carPart: carPart,
+        sellerName: widget.seller.name,
+        sellerId: widget.seller.id,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invoice saved: ${file.path}'),
           backgroundColor: Colors.green,
           action: SnackBarAction(
             label: 'Open',

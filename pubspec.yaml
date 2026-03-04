@@ -78,6 +78,8 @@ flutter:
     - assets/translations/en.json
     - assets/translations/ar.json
     - assets/logo.png
+    - assets/Logo3.png
+    - assets/Logo2.png
     - assets/lock.svg
     - assets/sms.svg
 
