@@ -10,8 +10,478 @@ import 'package:intl/intl.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/seller_model.dart';
 import 'package:elshaf3y_store/features/transaction_feature/data/models/transaction_model.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http; // ✅ Add this
 
 class ReportService {
+  // ✅ Load Arabic Font
+  // ✅ SIMPLIFIED: Load bundled Arabic Font
+  Future<pw.Font> _loadArabicFont() async {
+    try {
+      // Load the bundled Cairo Regular font
+      final fontData =
+          await rootBundle.load('assets/fonts/static/Cairo-Regular.ttf');
+      return pw.Font.ttf(fontData);
+    } catch (e) {
+      print('Failed to load Cairo font: $e');
+
+      // Try variable font as fallback
+      try {
+        final varFont = await rootBundle
+            .load('assets/fonts/Cairo-VariableFont_slnt,wght.ttf');
+        return pw.Font.ttf(varFont);
+      } catch (e2) {
+        print('Variable font also failed: $e2');
+        rethrow;
+      }
+    }
+  }
+
+  // ✅ Helper function to detect if text contains Arabic characters
+  bool _containsArabic(String text) {
+    if (text.isEmpty) return false;
+    // Check if any character is in Arabic Unicode range
+    return text.runes.any((rune) => rune >= 0x0600 && rune <= 0x06FF);
+  }
+
+  // ✅ Helper to determine text direction
+  pw.TextDirection _getTextDirection(String text) {
+    return _containsArabic(text) ? pw.TextDirection.rtl : pw.TextDirection.ltr;
+  }
+
+  /// Generate Invoice/Receipt for a single car part sale with dynamic Arabic support
+  /// Generate Invoice/Receipt for a single car part sale with dynamic Arabic support
+  Future<File> generateInvoiceForCarPart({
+    required CarPart carPart,
+    required String sellerName,
+    required String sellerId,
+  }) async {
+    final pdf = pw.Document();
+
+    // ✅ Load Arabic font
+    final arabicFont = await _loadArabicFont();
+
+    // Create text styles
+    pw.TextStyle normalStyle = pw.TextStyle(font: arabicFont, fontSize: 10);
+    pw.TextStyle boldStyle = pw.TextStyle(
+        font: arabicFont, fontSize: 10, fontWeight: pw.FontWeight.bold);
+    pw.TextStyle headerStyle = pw.TextStyle(
+        font: arabicFont, fontSize: 12, fontWeight: pw.FontWeight.bold);
+    pw.TextStyle titleStyle = pw.TextStyle(
+        font: arabicFont,
+        fontSize: 32,
+        fontWeight: pw.FontWeight.bold,
+        color: PdfColors.blue900);
+
+    // Load logo
+    Uint8List? logoBytes;
+    try {
+      final ByteData data = await rootBundle.load('assets/Logo3.png');
+      logoBytes = data.buffer.asUint8List();
+    } catch (e) {
+      print('Logo not found: $e');
+    }
+
+    final totalSellingPrice = carPart.getTotalSellingPrice();
+    final totalPaid = carPart.getTotalPayments();
+    final amountOwed = carPart.amountOwed;
+
+    // ✅ Detect if main content is Arabic
+    final isArabicContent = _containsArabic(carPart.name) ||
+        _containsArabic(carPart.description) ||
+        _containsArabic(sellerName);
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header with Logo
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // Logo (LEFT SIDE)
+                  if (logoBytes != null)
+                    pw.Image(
+                      pw.MemoryImage(logoBytes),
+                      width: 80,
+                      height: 80,
+                    )
+                  else
+                    pw.Container(
+                      width: 80,
+                      height: 80,
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.blue,
+                        borderRadius: pw.BorderRadius.circular(8),
+                      ),
+                      child: pw.Center(
+                        child: pw.Text(
+                          'LOGO',
+                          style: pw.TextStyle(
+                            font: arabicFont,
+                            color: PdfColors.white,
+                            fontSize: 20,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // Invoice Info (RIGHT SIDE) - ✅ FULLY DYNAMIC
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text(
+                        'INVOICE', // ✅ Always English
+                        style: titleStyle,
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Text(
+                        'Date: ${DateFormat('dd/MM/yyyy').format(carPart.dateAdded)}', // ✅ Always English
+                        style: normalStyle,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              pw.SizedBox(height: 30),
+
+              // Customer Info - ✅ DYNAMIC
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'BILL TO:', // ✅ Always English
+                      style: headerStyle,
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      sellerName,
+                      style: pw.TextStyle(
+                        font: arabicFont,
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textDirection: _getTextDirection(sellerName),
+                    ),
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 30),
+
+              // Car/Item Header - ✅ DYNAMIC per item
+              pw.Container(
+                padding: const pw.EdgeInsets.all(12),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.blue50,
+                  borderRadius: pw.BorderRadius.circular(8),
+                  border: pw.Border.all(color: PdfColors.blue200),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      carPart.name,
+                      style: pw.TextStyle(
+                        font: arabicFont,
+                        fontSize: 20,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900,
+                      ),
+                      textDirection: _getTextDirection(carPart.name),
+                    ),
+                    if (carPart.description.isNotEmpty) ...[
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        carPart.description,
+                        style: pw.TextStyle(
+                          font: arabicFont,
+                          fontSize: 12,
+                          color: PdfColors.grey700,
+                          fontStyle: pw.FontStyle.italic,
+                        ),
+                        textDirection: _getTextDirection(carPart.description),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // Items Table - ✅ Always LTR with English headers
+              pw.Table(
+                border: pw.TableBorder.all(color: PdfColors.grey400),
+                columnWidths: const {
+                  0: pw.FlexColumnWidth(3), // Item (left)
+                  1: pw.FlexColumnWidth(1), // Qty
+                  2: pw.FlexColumnWidth(1.5), // Price
+                  3: pw.FlexColumnWidth(1.5), // Total (right)
+                },
+                defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
+                children: [
+                  // Header - ✅ Always English
+                  pw.TableRow(
+                    decoration:
+                        const pw.BoxDecoration(color: PdfColors.grey300),
+                    children: [
+                      _buildDynamicTableCell('Item', headerStyle,
+                          isArabic: false),
+                      _buildDynamicTableCell('Qty', headerStyle,
+                          isArabic: false),
+                      _buildDynamicTableCell('Price', headerStyle,
+                          isArabic: false),
+                      _buildDynamicTableCell('Total', headerStyle,
+                          isArabic: false),
+                    ],
+                  ),
+
+                  // Main Item - ✅ Always English label
+                  pw.TableRow(
+                    decoration: const pw.BoxDecoration(color: PdfColors.white),
+                    children: [
+                      _buildDynamicTableCell('Main Item', normalStyle,
+                          isArabic: false),
+                      _buildDynamicTableCell('${carPart.quantity}', normalStyle,
+                          isArabic: false),
+                      _buildDynamicTableCell(
+                          '\$${carPart.price.toStringAsFixed(2)}', normalStyle,
+                          isArabic: false),
+                      _buildDynamicTableCell(
+                        '\$${(carPart.price * carPart.quantity).toStringAsFixed(2)}',
+                        boldStyle,
+                        isArabic: false,
+                      ),
+                    ],
+                  ),
+
+                  // Sub-Items - ✅ Dynamic per sub-item
+                  ...carPart.subItems.map((subItem) {
+                    final subItemIsArabic = _containsArabic(subItem.name);
+                    return pw.TableRow(
+                      decoration: pw.BoxDecoration(color: PdfColors.blue50),
+                      children: [
+                        _buildDynamicTableCell(
+                          subItem.name,
+                          pw.TextStyle(font: arabicFont, fontSize: 9),
+                          isArabic: subItemIsArabic,
+                        ),
+                        _buildDynamicTableCell(
+                          '${subItem.quantity}',
+                          pw.TextStyle(font: arabicFont, fontSize: 9),
+                          isArabic: false,
+                        ),
+                        _buildDynamicTableCell(
+                          '\$${subItem.price.toStringAsFixed(2)}',
+                          pw.TextStyle(font: arabicFont, fontSize: 9),
+                          isArabic: false,
+                        ),
+                        _buildDynamicTableCell(
+                          '\$${(subItem.price * subItem.quantity).toStringAsFixed(2)}',
+                          pw.TextStyle(
+                              font: arabicFont,
+                              fontSize: 9,
+                              fontWeight: pw.FontWeight.bold),
+                          isArabic: false,
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              ),
+
+              pw.SizedBox(height: 20),
+
+              // Totals Section - ✅ Always English labels
+              pw.Align(
+                alignment: pw.Alignment.centerRight,
+                child: pw.Container(
+                  width: 250,
+                  child: pw.Column(
+                    children: [
+                      _buildDynamicTotalRow(
+                          'Subtotal:', totalSellingPrice, normalStyle,
+                          isArabic: false),
+                      pw.Divider(thickness: 1),
+                      _buildDynamicTotalRow(
+                          'Total Paid:', totalPaid, normalStyle,
+                          valueColor: PdfColors.green700, isArabic: false),
+                      _buildDynamicTotalRow(
+                          'Amount Owed:', amountOwed, normalStyle,
+                          valueColor: PdfColors.red700, isArabic: false),
+                      pw.Divider(thickness: 2),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(vertical: 8),
+                        decoration: pw.BoxDecoration(
+                          color: amountOwed > 0
+                              ? PdfColors.red50
+                              : PdfColors.green50,
+                          borderRadius: pw.BorderRadius.circular(4),
+                        ),
+                        child: _buildDynamicTotalRow(
+                          'Balance Due:',
+                          amountOwed,
+                          pw.TextStyle(
+                              font: arabicFont,
+                              fontSize: 16,
+                              fontWeight: pw.FontWeight.bold),
+                          valueColor: amountOwed > 0
+                              ? PdfColors.red900
+                              : PdfColors.green900,
+                          isArabic: false,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              pw.Spacer(),
+
+              // Payment History - ✅ Always English label
+              if (carPart.payments.isNotEmpty) ...[
+                pw.SizedBox(height: 20),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColors.grey50,
+                    borderRadius: pw.BorderRadius.circular(8),
+                    border: pw.Border.all(color: PdfColors.grey300),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Payment History', style: headerStyle),
+                      pw.SizedBox(height: 8),
+                      ...carPart.payments.map((payment) => pw.Padding(
+                            padding: const pw.EdgeInsets.only(bottom: 4),
+                            child: pw.Row(
+                              mainAxisAlignment:
+                                  pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text(
+                                    DateFormat('dd/MM/yyyy')
+                                        .format(payment.date),
+                                    style: normalStyle),
+                                pw.Text(
+                                  '\$${payment.amount.toStringAsFixed(2)}',
+                                  style: pw.TextStyle(
+                                    font: arabicFont,
+                                    fontSize: 10,
+                                    fontWeight: pw.FontWeight.bold,
+                                    color: PdfColors.green700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )),
+                    ],
+                  ),
+                ),
+              ],
+
+              pw.SizedBox(height: 20),
+
+              // Footer - ✅ Always English
+              pw.Divider(),
+              pw.SizedBox(height: 10),
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text(
+                      'Thank you for your business!',
+                      style: pw.TextStyle(
+                        font: arabicFont,
+                        fontSize: 14,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Generated on ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+                      style: normalStyle,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File(
+        '${directory.path}/Invoice_${carPart.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    return file;
+  }
+
+  // ✅ NEW: Dynamic table cell helper
+  pw.Widget _buildDynamicTableCell(String text, pw.TextStyle style,
+      {required bool isArabic}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(8),
+      child: pw.Text(
+        text,
+        style: style,
+        textAlign: pw.TextAlign.center,
+        textDirection: isArabic ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+      ),
+    );
+  }
+
+  // ✅ NEW: Dynamic total row helper
+  pw.Widget _buildDynamicTotalRow(
+    String label,
+    double value,
+    pw.TextStyle style, {
+    PdfColor? valueColor,
+    required bool isArabic,
+  }) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: isArabic
+            ? [
+                pw.Text(
+                  '\$${value.toStringAsFixed(2)}',
+                  style: style.copyWith(color: valueColor),
+                ),
+                pw.Text(
+                  label,
+                  style: style,
+                  textDirection: pw.TextDirection.rtl,
+                ),
+              ]
+            : [
+                pw.Text(
+                  label,
+                  style: style,
+                ),
+                pw.Text(
+                  '\$${value.toStringAsFixed(2)}',
+                  style: style.copyWith(color: valueColor),
+                ),
+              ],
+      ),
+    );
+  }
+
   // ============= SINGLE SELLER REPORTS =============
 
   /// Generate Excel report for a single seller with sub-items breakdown
@@ -318,12 +788,16 @@ class ReportService {
   }
 
   /// Generate PDF report for a single seller with sub-items breakdown
+  /// Generate PDF report for a single seller with sub-items breakdown
   Future<File> generateSellerPDFReport(
     Seller seller,
     int month,
     int year,
   ) async {
     final pdf = pw.Document();
+
+    // ✅ Load Arabic font
+    final arabicFont = await _loadArabicFont();
 
     final monthlyCarParts = seller.carParts
         .where((part) =>
@@ -341,7 +815,7 @@ class ReportService {
         pageFormat: PdfPageFormat.a4.landscape,
         build: (context) {
           final content = <pw.Widget>[
-            // Header
+            // Header - ✅ Always English
             pw.Header(
               level: 0,
               child: pw.Column(
@@ -350,11 +824,17 @@ class ReportService {
                   pw.Text(
                     seller.name,
                     style: pw.TextStyle(
-                        fontSize: 24, fontWeight: pw.FontWeight.bold),
+                        font: arabicFont,
+                        fontSize: 24,
+                        fontWeight: pw.FontWeight.bold),
+                    textDirection: _getTextDirection(seller.name),
                   ),
                   pw.Text(
                     '${DateFormat.MMMM().format(DateTime(0, month))} $year Report',
-                    style: pw.TextStyle(fontSize: 16, color: PdfColors.grey700),
+                    style: pw.TextStyle(
+                        font: arabicFont,
+                        fontSize: 16,
+                        color: PdfColors.grey700),
                   ),
                   pw.Divider(thickness: 2),
                 ],
@@ -387,7 +867,7 @@ class ReportService {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    // Sale Header - ✅ Show car name prominently
+                    // Sale Header - ✅ Dynamic car name
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
@@ -395,15 +875,22 @@ class ReportService {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text(
-                              carPart.name, // ✅ Car name (e.g., "BMW 2020")
+                              carPart.name,
                               style: pw.TextStyle(
-                                  fontSize: 16, fontWeight: pw.FontWeight.bold),
+                                  font: arabicFont,
+                                  fontSize: 16,
+                                  fontWeight: pw.FontWeight.bold),
+                              textDirection: _getTextDirection(carPart.name),
                             ),
                             if (carPart.description.isNotEmpty)
                               pw.Text(
-                                carPart.description, // ✅ Item/Part description
+                                carPart.description,
                                 style: pw.TextStyle(
-                                    fontSize: 12, color: PdfColors.grey600),
+                                    font: arabicFont,
+                                    fontSize: 12,
+                                    color: PdfColors.grey600),
+                                textDirection:
+                                    _getTextDirection(carPart.description),
                               ),
                           ],
                         ),
@@ -419,6 +906,7 @@ class ReportService {
                           child: pw.Text(
                             '${actualGain >= 0 ? "+" : ""}\$${actualGain.toStringAsFixed(2)}',
                             style: pw.TextStyle(
+                              font: arabicFont,
                               fontSize: 12,
                               fontWeight: pw.FontWeight.bold,
                               color: actualGain >= 0
@@ -431,7 +919,7 @@ class ReportService {
                     ),
                     pw.SizedBox(height: 8),
 
-                    // Main Item
+                    // Main Item - ✅ Always English labels
                     pw.Container(
                       padding: const pw.EdgeInsets.all(8),
                       decoration: pw.BoxDecoration(
@@ -442,23 +930,28 @@ class ReportService {
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Main Item: ${carPart.quantity}x',
-                              style: const pw.TextStyle(fontSize: 10)),
+                              style:
+                                  pw.TextStyle(font: arabicFont, fontSize: 10)),
                           pw.Text('\$${carPart.price.toStringAsFixed(2)} each',
-                              style: const pw.TextStyle(fontSize: 10)),
+                              style:
+                                  pw.TextStyle(font: arabicFont, fontSize: 10)),
                           pw.Text(
                               'Total: \$${(carPart.price * carPart.quantity).toStringAsFixed(2)}',
                               style: pw.TextStyle(
+                                  font: arabicFont,
                                   fontSize: 10,
                                   fontWeight: pw.FontWeight.bold)),
                           pw.Text(
                               'Cost: \$${(carPart.purchasePrice ?? 0).toStringAsFixed(2)}',
                               style: pw.TextStyle(
-                                  fontSize: 10, color: PdfColors.orange)),
+                                  font: arabicFont,
+                                  fontSize: 10,
+                                  color: PdfColors.orange)),
                         ],
                       ),
                     ),
 
-                    // Sub-Items
+                    // Sub-Items - ✅ Dynamic per sub-item
                     if (carPart.subItems.isNotEmpty) ...[
                       pw.SizedBox(height: 8),
                       pw.Container(
@@ -473,6 +966,7 @@ class ReportService {
                             pw.Text(
                               'Additional Parts (${carPart.subItems.length}):',
                               style: pw.TextStyle(
+                                  font: arabicFont,
                                   fontSize: 10,
                                   fontWeight: pw.FontWeight.bold,
                                   color: PdfColors.blue700),
@@ -485,25 +979,32 @@ class ReportService {
                                     mainAxisAlignment:
                                         pw.MainAxisAlignment.spaceBetween,
                                     children: [
-                                      pw.Text(
-                                          '• ${subItem.name}', // ✅ Sub-item part name
-                                          style:
-                                              const pw.TextStyle(fontSize: 9)),
+                                      pw.Expanded(
+                                        child: pw.Text(
+                                          '• ${subItem.name}',
+                                          style: pw.TextStyle(
+                                              font: arabicFont, fontSize: 9),
+                                          textDirection:
+                                              _getTextDirection(subItem.name),
+                                        ),
+                                      ),
                                       pw.Text('${subItem.quantity}x',
-                                          style:
-                                              const pw.TextStyle(fontSize: 9)),
+                                          style: pw.TextStyle(
+                                              font: arabicFont, fontSize: 9)),
                                       pw.Text(
                                           '\$${subItem.price.toStringAsFixed(2)} each',
-                                          style:
-                                              const pw.TextStyle(fontSize: 9)),
+                                          style: pw.TextStyle(
+                                              font: arabicFont, fontSize: 9)),
                                       pw.Text(
                                           'Total: \$${(subItem.price * subItem.quantity).toStringAsFixed(2)}',
                                           style: pw.TextStyle(
+                                              font: arabicFont,
                                               fontSize: 9,
                                               fontWeight: pw.FontWeight.bold)),
                                       pw.Text(
                                           'Cost: \$${(subItem.purchasePrice ?? 0).toStringAsFixed(2)}',
                                           style: pw.TextStyle(
+                                              font: arabicFont,
                                               fontSize: 9,
                                               color: PdfColors.orange)),
                                     ],
@@ -517,18 +1018,18 @@ class ReportService {
                     pw.SizedBox(height: 8),
                     pw.Divider(),
 
-                    // Sale Summary
+                    // Sale Summary - ✅ Always English
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
                       children: [
-                        _buildSummaryItem(
-                            'Total Price', totalSellingPrice, PdfColors.black),
-                        _buildSummaryItem(
-                            'Total Cost', totalPurchaseCost, PdfColors.orange),
-                        _buildSummaryItem(
-                            'Total Paid', totalPaid, PdfColors.blue),
-                        _buildSummaryItem(
-                            'Owed', carPart.amountOwed, PdfColors.red,
+                        _buildSummaryItemWithFont('Total Price',
+                            totalSellingPrice, PdfColors.black, arabicFont),
+                        _buildSummaryItemWithFont('Total Cost',
+                            totalPurchaseCost, PdfColors.orange, arabicFont),
+                        _buildSummaryItemWithFont('Total Paid', totalPaid,
+                            PdfColors.blue, arabicFont),
+                        _buildSummaryItemWithFont('Owed', carPart.amountOwed,
+                            PdfColors.red, arabicFont,
                             bold: true),
                       ],
                     ),
@@ -538,7 +1039,7 @@ class ReportService {
             );
           }
 
-          // Grand Total Summary
+          // Grand Total Summary - ✅ Always English
           content.add(pw.SizedBox(height: 20));
           content.add(
             pw.Container(
@@ -554,21 +1055,26 @@ class ReportService {
                   pw.Text(
                     'Monthly Summary',
                     style: pw.TextStyle(
-                        fontSize: 18, fontWeight: pw.FontWeight.bold),
+                        font: arabicFont,
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold),
                   ),
                   pw.Divider(thickness: 2),
                   pw.SizedBox(height: 8),
-                  _buildSummaryRow('Total Selling Price', totalSellingPriceSum,
-                      PdfColors.blue),
-                  _buildSummaryRow('Total Purchase Cost', totalPurchaseCostSum,
-                      PdfColors.orange),
-                  _buildSummaryRow('Total Paid', totalPaidSum, PdfColors.blue),
-                  _buildSummaryRow('Total Owed', totalOwedSum, PdfColors.red),
+                  _buildSummaryRowWithFont('Total Selling Price',
+                      totalSellingPriceSum, PdfColors.blue, arabicFont),
+                  _buildSummaryRowWithFont('Total Purchase Cost',
+                      totalPurchaseCostSum, PdfColors.orange, arabicFont),
+                  _buildSummaryRowWithFont(
+                      'Total Paid', totalPaidSum, PdfColors.blue, arabicFont),
+                  _buildSummaryRowWithFont(
+                      'Total Owed', totalOwedSum, PdfColors.red, arabicFont),
                   pw.Divider(thickness: 2),
-                  _buildSummaryRow(
+                  _buildSummaryRowWithFont(
                     'Total Actual Gain',
                     totalActualGainSum,
                     totalActualGainSum >= 0 ? PdfColors.green : PdfColors.red,
+                    arabicFont,
                     bold: true,
                     fontSize: 14,
                   ),
@@ -582,7 +1088,8 @@ class ReportService {
           content.add(
             pw.Text(
               'Generated on ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}',
-              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+              style: pw.TextStyle(
+                  font: arabicFont, fontSize: 10, color: PdfColors.grey),
             ),
           );
 
@@ -600,17 +1107,20 @@ class ReportService {
     return file;
   }
 
-  // Helper widgets for PDF
-  pw.Widget _buildSummaryItem(String label, double value, PdfColor color,
+  // ✅ NEW: Helper widgets with font support
+  pw.Widget _buildSummaryItemWithFont(
+      String label, double value, PdfColor color, pw.Font font,
       {bool bold = false}) {
     return pw.Column(
       children: [
         pw.Text(label,
-            style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
+            style: pw.TextStyle(
+                font: font, fontSize: 9, color: PdfColors.grey700)),
         pw.SizedBox(height: 2),
         pw.Text(
           '\$${value.toStringAsFixed(2)}',
           style: pw.TextStyle(
+            font: font,
             fontSize: bold ? 11 : 10,
             fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
             color: color,
@@ -620,7 +1130,8 @@ class ReportService {
     );
   }
 
-  pw.Widget _buildSummaryRow(String label, double value, PdfColor color,
+  pw.Widget _buildSummaryRowWithFont(
+      String label, double value, PdfColor color, pw.Font font,
       {bool bold = false, double fontSize = 12}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 4),
@@ -629,12 +1140,14 @@ class ReportService {
         children: [
           pw.Text(label,
               style: pw.TextStyle(
+                  font: font,
                   fontSize: fontSize - 1,
                   fontWeight:
                       bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
           pw.Text(
             '\$${value.toStringAsFixed(2)}',
             style: pw.TextStyle(
+              font: font,
               fontSize: fontSize,
               fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
               color: color,
@@ -644,7 +1157,6 @@ class ReportService {
       ),
     );
   }
-
   // ============= ALL SELLERS REPORTS =============
 
   /// Generate Excel report for ALL sellers with sub-items support
@@ -840,6 +1352,9 @@ class ReportService {
   ) async {
     final pdf = pw.Document();
 
+    // ✅ Load Arabic font
+    final arabicFont = await _loadArabicFont();
+
     double totalSellingPriceSum = 0.0;
     double totalCostSum = 0.0;
     double totalGainFromPayments = 0.0;
@@ -863,7 +1378,6 @@ class ReportService {
       for (var carPart in carPartsForMonth) {
         final totalSellingPrice = carPart.getTotalSellingPrice();
         final totalPurchaseCost = carPart.getTotalPurchasePrice();
-        final totalPaid = carPart.getTotalPayments();
         final actualGain = carPart.getActualGain();
 
         sellerTotalSellingPrice += totalSellingPrice;
@@ -884,7 +1398,6 @@ class ReportService {
         'name': seller.name,
         'totalSellingPrice': sellerTotalSellingPrice,
         'totalCost': sellerTotalCost,
-        'owed': seller.getTotalOwed(),
         'gain': sellerGain,
         'monthlyOwed': sellerMonthlyOwed,
         'carParts': carPartsForMonth.length,
@@ -897,7 +1410,7 @@ class ReportService {
         pageFormat: PdfPageFormat.a4.landscape,
         build: (pw.Context context) {
           return [
-            // Header
+            // Header - ✅ Always English
             pw.Header(
               level: 0,
               child: pw.Column(
@@ -906,42 +1419,55 @@ class ReportService {
                   pw.Text(
                     'Monthly Sellers Report',
                     style: pw.TextStyle(
-                        fontSize: 24, fontWeight: pw.FontWeight.bold),
+                        font: arabicFont,
+                        fontSize: 24,
+                        fontWeight: pw.FontWeight.bold),
                   ),
                   pw.SizedBox(height: 8),
                   pw.Text(
                     '${DateFormat.MMMM().format(DateTime(0, month))} $year',
-                    style: pw.TextStyle(fontSize: 16, color: PdfColors.grey700),
+                    style: pw.TextStyle(
+                        font: arabicFont,
+                        fontSize: 16,
+                        color: PdfColors.grey700),
                   ),
                   pw.Divider(thickness: 2),
                 ],
               ),
             ),
 
-            // Summary Cards
+            // Summary Cards - ✅ Always English
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
               children: [
-                _buildStatCard(
+                _buildStatCardWithFont(
                     'Total Selling Price',
                     '\$${totalSellingPriceSum.toStringAsFixed(2)}',
-                    PdfColors.blue),
-                _buildStatCard('Total Cost',
-                    '\$${totalCostSum.toStringAsFixed(2)}', PdfColors.orange),
-                _buildStatCard(
+                    PdfColors.blue,
+                    arabicFont),
+                _buildStatCardWithFont(
+                    'Total Cost',
+                    '\$${totalCostSum.toStringAsFixed(2)}',
+                    PdfColors.orange,
+                    arabicFont),
+                _buildStatCardWithFont(
                     'Total Gain',
                     '\$${totalGainFromPayments.toStringAsFixed(2)}',
                     totalGainFromPayments >= 0
                         ? PdfColors.green
-                        : PdfColors.red),
-                _buildStatCard('Total Owed',
-                    '\$${totalMonthlyOwed.toStringAsFixed(2)}', PdfColors.red),
+                        : PdfColors.red,
+                    arabicFont),
+                _buildStatCardWithFont(
+                    'Total Owed',
+                    '\$${totalMonthlyOwed.toStringAsFixed(2)}',
+                    PdfColors.red,
+                    arabicFont),
               ],
             ),
 
             pw.SizedBox(height: 20),
 
-            // Additional Stats
+            // Additional Stats - ✅ Always English
             pw.Container(
               padding: const pw.EdgeInsets.all(12),
               decoration: pw.BoxDecoration(
@@ -952,18 +1478,21 @@ class ReportService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
                 children: [
                   pw.Text('Total Sellers: ${sellers.length}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      style: pw.TextStyle(
+                          font: arabicFont, fontWeight: pw.FontWeight.bold)),
                   pw.Text('Total Sales: $totalCarParts',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      style: pw.TextStyle(
+                          font: arabicFont, fontWeight: pw.FontWeight.bold)),
                   pw.Text('Total Sub-Items: $totalSubItems',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      style: pw.TextStyle(
+                          font: arabicFont, fontWeight: pw.FontWeight.bold)),
                 ],
               ),
             ),
 
             pw.SizedBox(height: 20),
 
-            // Sellers Table
+            // Sellers Table - ✅ Always English headers
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey400),
               children: [
@@ -971,39 +1500,58 @@ class ReportService {
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.grey300),
                   children: [
-                    _buildTableCell('Seller', isHeader: true),
-                    _buildTableCell('Selling Price', isHeader: true),
-                    _buildTableCell('Cost', isHeader: true),
-                    _buildTableCell('Gain', isHeader: true),
-                    _buildTableCell('Owed', isHeader: true),
-                    _buildTableCell('Sales', isHeader: true),
-                    _buildTableCell('Sub-Items', isHeader: true),
+                    _buildTableCellWithFont('Seller', arabicFont,
+                        isHeader: true),
+                    _buildTableCellWithFont('Selling Price', arabicFont,
+                        isHeader: true),
+                    _buildTableCellWithFont('Cost', arabicFont, isHeader: true),
+                    _buildTableCellWithFont('Gain', arabicFont, isHeader: true),
+                    _buildTableCellWithFont('Owed', arabicFont, isHeader: true),
+                    _buildTableCellWithFont('Sales', arabicFont,
+                        isHeader: true),
+                    _buildTableCellWithFont('Sub-Items', arabicFont,
+                        isHeader: true),
                   ],
                 ),
-                // Data Rows
+                // Data Rows - ✅ Dynamic seller names
                 ...sellerData.map((data) {
                   final gain = data['gain'] as double;
+                  final sellerName = data['name'] as String;
                   return pw.TableRow(
                     children: [
-                      _buildTableCell(data['name'] as String),
-                      _buildTableCell(
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          sellerName,
+                          style: pw.TextStyle(font: arabicFont, fontSize: 9),
+                          textAlign: pw.TextAlign.center,
+                          textDirection: _getTextDirection(sellerName),
+                        ),
+                      ),
+                      _buildTableCellWithFont(
                         '\$${(data['totalSellingPrice'] as double).toStringAsFixed(2)}',
+                        arabicFont,
                         textColor: PdfColors.blue,
                       ),
-                      _buildTableCell(
+                      _buildTableCellWithFont(
                         '\$${(data['totalCost'] as double).toStringAsFixed(2)}',
+                        arabicFont,
                         textColor: PdfColors.orange,
                       ),
-                      _buildTableCell(
+                      _buildTableCellWithFont(
                         '\$${gain.toStringAsFixed(2)}',
+                        arabicFont,
                         textColor: gain >= 0 ? PdfColors.green : PdfColors.red,
                       ),
-                      _buildTableCell(
+                      _buildTableCellWithFont(
                         '\$${(data['monthlyOwed'] as double).toStringAsFixed(2)}',
+                        arabicFont,
                         textColor: PdfColors.red,
                       ),
-                      _buildTableCell('${data['carParts']}'),
-                      _buildTableCell('${data['subItems']}'),
+                      _buildTableCellWithFont(
+                          '${data['carParts']}', arabicFont),
+                      _buildTableCellWithFont(
+                          '${data['subItems']}', arabicFont),
                     ],
                   );
                 }).toList(),
@@ -1012,7 +1560,7 @@ class ReportService {
 
             pw.SizedBox(height: 20),
 
-            // Footer Note
+            // Footer Note - ✅ Always English
             pw.Container(
               padding: const pw.EdgeInsets.all(12),
               decoration: pw.BoxDecoration(
@@ -1022,6 +1570,7 @@ class ReportService {
               child: pw.Text(
                 'Note: This report includes all sales with their sub-items added in ${DateFormat.MMMM().format(DateTime(0, month))} $year. Gain calculation includes all payments received to date.',
                 style: pw.TextStyle(
+                    font: arabicFont,
                     fontSize: 10,
                     color: PdfColors.grey800,
                     fontStyle: pw.FontStyle.italic),
@@ -1031,7 +1580,8 @@ class ReportService {
             pw.SizedBox(height: 20),
             pw.Text(
               'Generated on: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
-              style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+              style: pw.TextStyle(
+                  font: arabicFont, fontSize: 10, color: PdfColors.grey600),
             ),
           ];
         },
@@ -1046,14 +1596,15 @@ class ReportService {
     return file;
   }
 
-  // Helper methods
-  pw.Widget _buildTableCell(String text,
+  // ✅ NEW: Helper methods with font support
+  pw.Widget _buildTableCellWithFont(String text, pw.Font font,
       {bool isHeader = false, PdfColor? textColor}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.all(8),
       child: pw.Text(
         text,
         style: pw.TextStyle(
+          font: font,
           fontSize: isHeader ? 10 : 9,
           fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
           color: textColor,
@@ -1063,413 +1614,37 @@ class ReportService {
     );
   }
 
-  pw.Widget _buildStatCard(String label, String value, PdfColor color) {
+  pw.Widget _buildStatCardWithFont(
+      String label, String value, PdfColor color, pw.Font font) {
+    // ✅ Create darker version of the color for text
+    final darkColor = PdfColor.fromInt(color.toInt() & 0xFF000000 |
+        ((color.red * 0.6).toInt() << 16) |
+        ((color.green * 0.6).toInt() << 8) |
+        (color.blue * 0.6).toInt());
+
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
-        color: color.shade(0.1),
+        color: PdfColors.white, // ✅ White background for better contrast
         borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: color),
+        border: pw.Border.all(color: color, width: 2),
       ),
       child: pw.Column(
         children: [
           pw.Text(label,
-              style:
-                  const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+              style: pw.TextStyle(
+                  font: font,
+                  fontSize: 10,
+                  color: PdfColors.grey700,
+                  fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
           pw.Text(
             value,
             style: pw.TextStyle(
-                fontSize: 14, fontWeight: pw.FontWeight.bold, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Generate Invoice/Receipt for a single car part sale
-  Future<File> generateInvoiceForCarPart({
-    required CarPart carPart,
-    required String sellerName,
-    required String sellerId,
-  }) async {
-    final pdf = pw.Document();
-
-    // Load logo
-    Uint8List? logoBytes;
-    try {
-      final ByteData data = await rootBundle.load('assets/Logo3.png');
-      logoBytes = data.buffer.asUint8List();
-    } catch (e) {
-      print('Logo not found: $e');
-    }
-
-    final totalSellingPrice = carPart.getTotalSellingPrice();
-    final totalPurchaseCost = carPart.getTotalPurchasePrice();
-    final totalPaid = carPart.getTotalPayments();
-    final amountOwed = carPart.amountOwed;
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Header with Logo
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  // Logo
-                  if (logoBytes != null)
-                    pw.Image(
-                      pw.MemoryImage(logoBytes),
-                      width: 80,
-                      height: 80,
-                    )
-                  else
-                    pw.Container(
-                      width: 80,
-                      height: 80,
-                      decoration: pw.BoxDecoration(
-                        color: PdfColors.blue,
-                        borderRadius: pw.BorderRadius.circular(8),
-                      ),
-                      child: pw.Center(
-                        child: pw.Text(
-                          'LOGO',
-                          style: pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 20,
-                            fontWeight: pw.FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // Invoice Info - ✅ REMOVED Invoice # and Customer ID
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'INVOICE',
-                        style: pw.TextStyle(
-                          fontSize: 32,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.blue900,
-                        ),
-                      ),
-                      pw.SizedBox(height: 8),
-                      pw.Text(
-                        'Date: ${DateFormat('dd/MM/yyyy').format(carPart.dateAdded)}',
-                        style: const pw.TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-
-              pw.SizedBox(height: 30),
-
-              // Customer Info - ✅ REMOVED Customer ID
-              pw.Container(
-                padding: const pw.EdgeInsets.all(16),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.grey100,
-                  borderRadius: pw.BorderRadius.circular(8),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'BILL TO:',
-                      style: pw.TextStyle(
-                        fontSize: 12,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.grey700,
-                      ),
-                    ),
-                    pw.SizedBox(height: 8),
-                    pw.Text(
-                      sellerName,
-                      style: pw.TextStyle(
-                        fontSize: 18,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              pw.SizedBox(height: 30),
-
-              // Car/Item Header
-              pw.Container(
-                padding: const pw.EdgeInsets.all(12),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.blue50,
-                  borderRadius: pw.BorderRadius.circular(8),
-                  border: pw.Border.all(color: PdfColors.blue200),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      carPart.name,
-                      style: pw.TextStyle(
-                        fontSize: 20,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.blue900,
-                      ),
-                    ),
-                    if (carPart.description.isNotEmpty) ...[
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        carPart.description,
-                        style: pw.TextStyle(
-                          fontSize: 12,
-                          color: PdfColors.grey700,
-                          fontStyle: pw.FontStyle.italic,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Items Table - ✅ CENTERED & CLEAN SUB-ITEMS
-              pw.Table(
-                border: pw.TableBorder.all(color: PdfColors.grey400),
-                columnWidths: {
-                  0: const pw.FlexColumnWidth(3),
-                  1: const pw.FlexColumnWidth(1),
-                  2: const pw.FlexColumnWidth(1.5),
-                  3: const pw.FlexColumnWidth(1.5),
-                },
-                children: [
-                  // Header
-                  pw.TableRow(
-                    decoration:
-                        const pw.BoxDecoration(color: PdfColors.grey300),
-                    children: [
-                      _buildInvoiceTableCell('Item', isHeader: true),
-                      _buildInvoiceTableCell('Qty', isHeader: true),
-                      _buildInvoiceTableCell('Unit Price', isHeader: true),
-                      _buildInvoiceTableCell('Total', isHeader: true),
-                    ],
-                  ),
-
-                  // Main Item
-                  pw.TableRow(
-                    decoration: const pw.BoxDecoration(color: PdfColors.white),
-                    children: [
-                      _buildInvoiceTableCell('Main Item', centered: false),
-                      _buildInvoiceTableCell('${carPart.quantity}'),
-                      _buildInvoiceTableCell(
-                          '\$${carPart.price.toStringAsFixed(2)}'),
-                      _buildInvoiceTableCell(
-                        '\$${(carPart.price * carPart.quantity).toStringAsFixed(2)}',
-                        bold: true,
-                      ),
-                    ],
-                  ),
-
-                  // Sub-Items - ✅ CLEAN & CENTERED
-                  ...carPart.subItems.map((subItem) => pw.TableRow(
-                        decoration: pw.BoxDecoration(color: PdfColors.blue50),
-                        children: [
-                          _buildInvoiceTableCell(subItem.name,
-                              centered: false,
-                              fontSize: 9), // ✅ No bullets or numbers
-                          _buildInvoiceTableCell('${subItem.quantity}',
-                              fontSize: 9),
-                          _buildInvoiceTableCell(
-                              '\$${subItem.price.toStringAsFixed(2)}',
-                              fontSize: 9),
-                          _buildInvoiceTableCell(
-                            '\$${(subItem.price * subItem.quantity).toStringAsFixed(2)}',
-                            fontSize: 9,
-                            bold: true,
-                          ),
-                        ],
-                      )),
-                ],
-              ),
-
-              pw.SizedBox(height: 20),
-
-              // Totals Section
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.start,
-                children: [
-                  pw.Container(
-                    width: 250,
-                    child: pw.Column(
-                      children: [
-                        _buildInvoiceTotalRow('Subtotal:', totalSellingPrice),
-                        pw.Divider(thickness: 1),
-                        _buildInvoiceTotalRow('Total Paid:', totalPaid,
-                            color: PdfColors.green700),
-                        _buildInvoiceTotalRow('Amount Owed:', amountOwed,
-                            color: PdfColors.red700),
-                        pw.Divider(thickness: 2),
-                        pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(vertical: 8),
-                          decoration: pw.BoxDecoration(
-                            color: amountOwed > 0
-                                ? PdfColors.red50
-                                : PdfColors.green50,
-                            borderRadius: pw.BorderRadius.circular(4),
-                          ),
-                          child: _buildInvoiceTotalRow(
-                            'Balance Due:',
-                            amountOwed,
-                            color: amountOwed > 0
-                                ? PdfColors.red900
-                                : PdfColors.green900,
-                            bold: true,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              pw.Spacer(),
-
-              // Payment History
-              if (carPart.payments.isNotEmpty) ...[
-                pw.SizedBox(height: 20),
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey50,
-                    borderRadius: pw.BorderRadius.circular(8),
-                    border: pw.Border.all(color: PdfColors.grey300),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'Payment History',
-                        style: pw.TextStyle(
-                          fontSize: 12,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                      pw.SizedBox(height: 8),
-                      ...carPart.payments.map((payment) => pw.Padding(
-                            padding: const pw.EdgeInsets.only(bottom: 4),
-                            child: pw.Row(
-                              mainAxisAlignment:
-                                  pw.MainAxisAlignment.spaceBetween,
-                              children: [
-                                pw.Text(
-                                  DateFormat('dd/MM/yyyy').format(payment.date),
-                                  style: const pw.TextStyle(fontSize: 10),
-                                ),
-                                pw.Text(
-                                  '\$${payment.amount.toStringAsFixed(2)}',
-                                  style: pw.TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: pw.FontWeight.bold,
-                                    color: PdfColors.green700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )),
-                    ],
-                  ),
-                ),
-              ],
-
-              pw.SizedBox(height: 20),
-
-              // Footer
-              pw.Divider(),
-              pw.SizedBox(height: 10),
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text(
-                      'Thank you for your business!',
-                      style: pw.TextStyle(
-                        fontSize: 14,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.blue900,
-                      ),
-                    ),
-                    pw.SizedBox(height: 4),
-                    pw.Text(
-                      'Generated on ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
-                      style: const pw.TextStyle(
-                          fontSize: 8, color: PdfColors.grey600),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File(
-        '${directory.path}/Invoice_${carPart.name.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf');
-    await file.writeAsBytes(await pdf.save());
-
-    return file;
-  }
-
-  // ✅ UPDATED: Helper method with center alignment option
-  pw.Widget _buildInvoiceTableCell(String text,
-      {bool isHeader = false,
-      bool bold = false,
-      double fontSize = 10,
-      bool centered = true}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.all(8),
-      child: pw.Text(
-        text,
-        style: pw.TextStyle(
-          fontSize: fontSize,
-          fontWeight:
-              (isHeader || bold) ? pw.FontWeight.bold : pw.FontWeight.normal,
-          color: isHeader ? PdfColors.black : null,
-        ),
-        textAlign: centered ? pw.TextAlign.center : pw.TextAlign.left,
-      ),
-    );
-  }
-
-  pw.Widget _buildInvoiceTotalRow(String label, double value,
-      {PdfColor? color, bool bold = false, double fontSize = 12}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(
-            label,
-            style: pw.TextStyle(
-              fontSize: fontSize,
-              fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
-            ),
-          ),
-          pw.Text(
-            '\$${value.toStringAsFixed(2)}',
-            style: pw.TextStyle(
-              fontSize: fontSize,
-              fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
-              color: color,
-            ),
+                font: font,
+                fontSize: 16, // ✅ Larger
+                fontWeight: pw.FontWeight.bold,
+                color: darkColor), // ✅ Darker shade of the original color
           ),
         ],
       ),
