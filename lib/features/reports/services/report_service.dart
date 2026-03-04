@@ -201,19 +201,19 @@ class ReportService {
                       ),
                       textDirection: _getTextDirection(carPart.name),
                     ),
-                    if (carPart.description.isNotEmpty) ...[
-                      pw.SizedBox(height: 4),
-                      pw.Text(
-                        carPart.description,
-                        style: pw.TextStyle(
-                          font: arabicFont,
-                          fontSize: 12,
-                          color: PdfColors.grey700,
-                          fontStyle: pw.FontStyle.italic,
-                        ),
-                        textDirection: _getTextDirection(carPart.description),
-                      ),
-                    ],
+                    // if (carPart.description.isNotEmpty) ...[
+                    //   pw.SizedBox(height: 4),
+                    //   pw.Text(
+                    //     carPart.description,
+                    //     style: pw.TextStyle(
+                    //       font: arabicFont,
+                    //       fontSize: 12,
+                    //       color: PdfColors.grey700,
+                    //       fontStyle: pw.FontStyle.italic,
+                    //     ),
+                    //     textDirection: _getTextDirection(carPart.description),
+                    //   ),
+                    // ],
                   ],
                 ),
               ),
@@ -251,8 +251,8 @@ class ReportService {
                   pw.TableRow(
                     decoration: const pw.BoxDecoration(color: PdfColors.white),
                     children: [
-                      _buildDynamicTableCell('Main Item', normalStyle,
-                          isArabic: false),
+                      _buildDynamicTableCell(carPart.description, normalStyle,
+                          isArabic: true),
                       _buildDynamicTableCell('${carPart.quantity}', normalStyle,
                           isArabic: false),
                       _buildDynamicTableCell(
