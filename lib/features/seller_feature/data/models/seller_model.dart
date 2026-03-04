@@ -24,8 +24,7 @@ class Seller {
     return carParts.fold(0.0, (sum, carPart) => sum + carPart.amountOwed);
   }
 
-  /// Get actual monthly gain (sum of actual gains from each car part)
-  /// If month/year not provided, uses current month
+  /// ✅ UPDATED: Calculate gain for car parts ADDED in specific month
   double getActualMonthlyGain({int? month, int? year}) {
     final targetMonth = month ?? DateTime.now().month;
     final targetYear = year ?? DateTime.now().year;
@@ -34,37 +33,35 @@ class Seller {
 
     double totalActualGain = 0.0;
 
-    for (var carPart in carParts) {
-      // Calculate total selling price and purchase price
-      final totalSellingPrice = carPart.price * carPart.quantity;
-      final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
+    // ✅ Filter car parts by dateAdded
+    final carPartsForMonth = carParts.where((carPart) {
+      return carPart.dateAdded.month == targetMonth &&
+          carPart.dateAdded.year == targetYear;
+    }).toList();
 
-      // ✅ ONLY count payments made in THIS SPECIFIC MONTH/YEAR
-      double monthlyPayments = 0.0;
-      for (var payment in carPart.payments) {
-        if (payment.date.month == targetMonth &&
-            payment.date.year == targetYear) {
-          monthlyPayments += payment.amount;
-        }
-      }
+    for (var carPart in carPartsForMonth) {
+      // ✅ Use new helper methods
+      final totalPurchasePrice = carPart.getTotalPurchasePrice();
+      final totalPayments = carPart.getTotalPayments();
 
-      // If no payments in this month, skip this car part
-      if (monthlyPayments == 0) continue;
-
-      // Calculate what % of total price these monthly payments represent
-      final monthlyPaymentPercentage =
-          totalSellingPrice > 0 ? monthlyPayments / totalSellingPrice : 0.0;
-
-      // Calculate proportional cost for ONLY these monthly payments
-      final proportionalCost = totalPurchasePrice * monthlyPaymentPercentage;
-
-      // Actual gain = payments received - proportional cost
-      final actualGain = monthlyPayments - proportionalCost;
+      // ✅ SIMPLE: Gain = Payments - Cost
+      final actualGain = totalPayments - totalPurchasePrice;
 
       print('🔍 Car Part: ${carPart.name}');
-      print('   Monthly Payments: \$${monthlyPayments.toStringAsFixed(2)}');
-      print('   Proportional Cost: \$${proportionalCost.toStringAsFixed(2)}');
+      print(
+          '   Total Selling Price: \$${carPart.getTotalSellingPrice().toStringAsFixed(2)}');
+      print(
+          '   Total Purchase Price: \$${totalPurchasePrice.toStringAsFixed(2)}');
+      print('   Total Payments: \$${totalPayments.toStringAsFixed(2)}');
       print('   ✅ Actual Gain: \$${actualGain.toStringAsFixed(2)}');
+
+      if (carPart.subItems.isNotEmpty) {
+        print('   📦 Sub-Items: ${carPart.subItems.length}');
+        for (var subItem in carPart.subItems) {
+          print(
+              '      - ${subItem.name}: ${subItem.quantity}x \$${subItem.price}');
+        }
+      }
 
       totalActualGain += actualGain;
     }
@@ -96,33 +93,6 @@ class Seller {
     }
 
     print('   📊 Total payments for ${name}: \$${total.toStringAsFixed(2)}');
-    return total;
-  }
-
-  /// Get purchase costs that should be counted in this month
-  /// Rule: Only count the cost in the month of FIRST payment
-  double getMonthlyCosts({required int month, required int year}) {
-    double total = 0.0;
-
-    print('   🔎 Checking costs for ${name}:');
-
-    for (var carPart in carParts) {
-      if (carPart.payments.isEmpty) continue;
-
-      final sortedPayments = carPart.payments.toList()
-        ..sort((a, b) => a.date.compareTo(b.date));
-
-      final firstPaymentDate = sortedPayments.first.date;
-
-      // Only count the purchase cost if this month is the first payment month
-      if (firstPaymentDate.month == month && firstPaymentDate.year == year) {
-        total += (carPart.purchasePrice ?? 0.0);
-        print(
-            '      💸 ${carPart.name}: \$${carPart.purchasePrice?.toStringAsFixed(2)} (FIRST PAYMENT in $month/$year)');
-      }
-    }
-
-    print('   📦 Total costs for ${name}: \$${total.toStringAsFixed(2)}');
     return total;
   }
 
