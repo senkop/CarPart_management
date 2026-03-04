@@ -202,30 +202,23 @@ class _SellerScreenState extends State<SellerScreen> {
                     // ✅ Calculate gain for car parts ADDED in selected month
                     double totalGainFromPayments = 0.0;
 
+                    // In the AppBar BlocBuilder (around line 180):
+
                     for (var seller in sellerState.sellers) {
-                      // Filter car parts by dateAdded
                       final carPartsForMonth = seller.carParts.where((carPart) {
                         return carPart.dateAdded.month == selectedMonth &&
                             carPart.dateAdded.year == selectedYear;
                       }).toList();
 
-                      // Calculate gain from ALL payments for these car parts
                       for (var carPart in carPartsForMonth) {
-                        final totalSellingPrice =
-                            carPart.price * carPart.quantity;
                         final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
                         double totalPayments = carPart.payments
                             .fold(0.0, (sum, payment) => sum + payment.amount);
 
-                        if (totalPayments > 0 && totalSellingPrice > 0) {
-                          final paymentPercentage =
-                              totalPayments / totalSellingPrice;
-                          final proportionalCost =
-                              totalPurchasePrice * paymentPercentage;
-                          final actualGain = totalPayments - proportionalCost;
-                          totalGainFromPayments += actualGain;
-                        }
+                        // ✅ SIMPLE: Gain = Payments - Cost
+                        final actualGain = totalPayments - totalPurchasePrice;
+                        totalGainFromPayments += actualGain;
                       }
                     }
 
@@ -1121,21 +1114,16 @@ class _SellerScreenState extends State<SellerScreen> {
       return carPart.dateAdded.month == month && carPart.dateAdded.year == year;
     }).toList();
 
-    // ✅ Only loop through car parts ADDED in this month
     for (var carPart in carPartsForSelectedMonth) {
-      final totalSellingPrice = carPart.price * carPart.quantity;
       final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
-      // Count ALL payments for this car part (not just this month)
+      // Count ALL payments for this car part
       double totalPayments =
           carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
 
-      if (totalPayments > 0 && totalSellingPrice > 0) {
-        final paymentPercentage = totalPayments / totalSellingPrice;
-        final proportionalCost = totalPurchasePrice * paymentPercentage;
-        final actualGain = totalPayments - proportionalCost;
-        totalMonthlyGain += actualGain;
-      }
+      // ✅ SIMPLE CALCULATION: Gain = Payments - Purchase Cost
+      final actualGain = totalPayments - totalPurchasePrice;
+      totalMonthlyGain += actualGain;
     }
 
     return totalMonthlyGain;
@@ -1159,18 +1147,14 @@ class _SellerScreenState extends State<SellerScreen> {
       }).toList();
 
       for (var carPart in carPartsForMonth) {
-        final totalSellingPrice = carPart.price * carPart.quantity;
         final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
         double totalPayments =
             carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
 
-        if (totalPayments > 0 && totalSellingPrice > 0) {
-          final paymentPercentage = totalPayments / totalSellingPrice;
-          final proportionalCost = totalPurchasePrice * paymentPercentage;
-          final actualGain = totalPayments - proportionalCost;
-          totalGainFromPayments += actualGain;
-        }
+        // ✅ SIMPLE: Gain = Payments - Cost
+        final actualGain = totalPayments - totalPurchasePrice;
+        totalGainFromPayments += actualGain;
       }
     }
 

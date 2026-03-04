@@ -70,14 +70,11 @@ class ReportService {
       double totalPayments =
           carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
 
-      // Calculate actual gain based on ALL payments
-      final paymentPercentage =
-          totalSellingPrice > 0 ? totalPayments / totalSellingPrice : 0.0;
-      final proportionalCost = totalPurchasePrice * paymentPercentage;
-      final actualGain = totalPayments - proportionalCost;
+      // ✅ SIMPLE: Gain = Payments - Cost
+      final actualGain = totalPayments - totalPurchasePrice;
 
       totalRevenue += totalPayments;
-      totalCost += proportionalCost;
+      totalCost += totalPurchasePrice;
       totalGain += actualGain;
 
       sheet
@@ -167,14 +164,11 @@ class ReportService {
       double totalPayments =
           carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
 
-      // Calculate actual gain
-      final paymentPercentage =
-          totalSellingPrice > 0 ? totalPayments / totalSellingPrice : 0.0;
-      final proportionalCost = totalPurchasePrice * paymentPercentage;
-      final actualGain = totalPayments - proportionalCost;
+      // ✅ SIMPLE: Gain = Payments - Cost
+      final actualGain = totalPayments - totalPurchasePrice;
 
       totalRevenue += totalPayments;
-      totalCost += proportionalCost;
+      totalCost += totalPurchasePrice;
       totalGain += actualGain;
 
       tableData.add([
@@ -358,13 +352,11 @@ class ReportService {
         double totalPayments =
             carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
 
-        final paymentPercentage =
-            totalSellingPrice > 0 ? totalPayments / totalSellingPrice : 0.0;
-        final proportionalCost = totalPurchasePrice * paymentPercentage;
-        final actualGain = totalPayments - proportionalCost;
+        // ✅ SIMPLE: Gain = Payments - Cost
+        final actualGain = totalPayments - totalPurchasePrice;
 
         sellerRevenue += totalPayments;
-        sellerCost += proportionalCost;
+        sellerCost += totalPurchasePrice;
         sellerGain += actualGain;
       }
 
@@ -463,12 +455,9 @@ class ReportService {
         double totalPayments =
             carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
 
-        if (totalPayments > 0 && totalSellingPrice > 0) {
-          final paymentPercentage = totalPayments / totalSellingPrice;
-          final proportionalCost = totalPurchasePrice * paymentPercentage;
-          final actualGain = totalPayments - proportionalCost;
-          sellerGain += actualGain;
-        }
+        // ✅ SIMPLE: Gain = Payments - Cost
+        final actualGain = totalPayments - totalPurchasePrice;
+        sellerGain += actualGain;
       }
 
       totalGainFromPayments += sellerGain;

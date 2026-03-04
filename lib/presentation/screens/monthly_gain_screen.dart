@@ -694,22 +694,16 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
           double sellerGain = 0.0;
 
           for (var carPart in carPartsForMonth) {
-            final totalSellingPrice = carPart.price * carPart.quantity;
             final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
-            // Count ALL payments for this car part
             double totalPayments = carPart.payments
                 .fold(0.0, (sum, payment) => sum + payment.amount);
 
-            if (totalPayments > 0 && totalSellingPrice > 0) {
-              final paymentPercentage = totalPayments / totalSellingPrice;
-              final proportionalCost = totalPurchasePrice * paymentPercentage;
-              final actualGain = totalPayments - proportionalCost;
-              sellerGain += actualGain;
+            // ✅ SIMPLE: Gain = Payments - Cost
+            final actualGain = totalPayments - totalPurchasePrice;
+            sellerGain += actualGain;
 
-              print(
-                  '   📦 ${carPart.name}: \$${actualGain.toStringAsFixed(2)}');
-            }
+            print('   📦 ${carPart.name}: \$${actualGain.toStringAsFixed(2)}');
           }
 
           if (sellerGain != 0) {

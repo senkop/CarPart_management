@@ -52,7 +52,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               final updatedSeller =
                   state.sellers.firstWhere((s) => s.id == widget.seller.id);
 
-              // ✅ FIX: FILTER car parts by SELECTED MONTH first!
+              // ✅ FILTER car parts by SELECTED MONTH first!
               final carPartsForSelectedMonth =
                   updatedSeller.carParts.where((carPart) {
                 return carPart.dateAdded.month == selectedMonth &&
@@ -64,39 +64,15 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
 
               // ✅ LOOP ONLY THROUGH FILTERED CAR PARTS
               for (var carPart in carPartsForSelectedMonth) {
-                final totalSellingPrice = carPart.price * carPart.quantity;
                 final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
-                // ✅ ONLY count payments made in the SELECTED month/year
-                double monthlyPayments = 0.0;
-                for (var payment in carPart.payments) {
-                  if (payment.date.month == selectedMonth &&
-                      payment.date.year == selectedYear) {
-                    monthlyPayments += payment.amount;
-                  }
-                }
+                // Count ALL payments for this car part (not just this month)
+                double totalPayments = carPart.payments
+                    .fold(0.0, (sum, payment) => sum + payment.amount);
 
-                if (monthlyPayments > 0 && totalSellingPrice > 0) {
-                  // Calculate what % of total price was paid THIS MONTH
-                  final monthlyPaymentPercentage =
-                      monthlyPayments / totalSellingPrice;
-
-                  // Calculate proportional cost for THIS MONTH's payments
-                  final proportionalCost =
-                      totalPurchasePrice * monthlyPaymentPercentage;
-
-                  // Calculate actual gain for THIS MONTH
-                  final actualGain = monthlyPayments - proportionalCost;
-                  monthlyActualGain += actualGain;
-
-                  print('📦 ${carPart.name}:');
-                  print(
-                      '   Payments this month: \$${monthlyPayments.toStringAsFixed(2)}');
-                  print(
-                      '   Proportional cost: \$${proportionalCost.toStringAsFixed(2)}');
-                  print(
-                      '   Gain this month: \$${actualGain.toStringAsFixed(2)}');
-                }
+                // ✅ SIMPLE: Gain = Total Payments - Purchase Cost
+                final actualGain = totalPayments - totalPurchasePrice;
+                monthlyActualGain += actualGain;
               }
 
               return Column(
@@ -223,26 +199,23 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                       // Calculate TOTAL price for all units
                       final totalSellingPrice =
                           carPart.price * carPart.quantity;
-                      final totalPurchasePrice = carPart.purchasePrice;
+                      final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
 
-                      // Calculate how much has been paid so far
-                      final totalPaid = totalSellingPrice - carPart.amountOwed;
+                      // Calculate how much has been paid so far (ALL payments)
+                      double totalPaid = carPart.payments
+                          .fold(0.0, (sum, payment) => sum + payment.amount);
 
-                      // Calculate payment percentage (what % of total price was paid)
-                      final paymentPercentage = totalSellingPrice > 0
-                          ? totalPaid / totalSellingPrice
-                          : 0.0;
-
-                      // Calculate ACTUAL gain:
-                      // We've received "totalPaid" dollars
-                      // We need to deduct the proportional purchase cost
-                      final proportionalCost =
-                          totalPurchasePrice * paymentPercentage;
-                      final actualGain = totalPaid - proportionalCost;
+                      // ✅ SIMPLE: Actual Gain = Total Paid - Purchase Cost
+                      final actualGain = totalPaid - totalPurchasePrice;
 
                       // Calculate POTENTIAL gain (if fully paid)
                       final potentialGain =
                           totalSellingPrice - totalPurchasePrice;
+
+                      // Calculate payment percentage (for display)
+                      final paymentPercentage = totalSellingPrice > 0
+                          ? totalPaid / totalSellingPrice
+                          : 0.0;
 
                       print('🔍 Car Part: ${carPart.name}');
                       print(
@@ -250,10 +223,6 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                       print(
                           '   Total Purchase Price: \$${totalPurchasePrice.toStringAsFixed(2)}');
                       print('   Total Paid: \$${totalPaid.toStringAsFixed(2)}');
-                      print(
-                          '   Payment %: ${(paymentPercentage * 100).toStringAsFixed(1)}%');
-                      print(
-                          '   Proportional Cost: \$${proportionalCost.toStringAsFixed(2)}');
                       print(
                           '   ✅ Actual Gain: \$${actualGain.toStringAsFixed(2)}');
                       print(
