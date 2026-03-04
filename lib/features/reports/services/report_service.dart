@@ -28,7 +28,8 @@ class ReportService {
     );
 
     // Title Row
-    sheet.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('F1'));
+    sheet.merge(CellIndex.indexByString('A1'),
+        CellIndex.indexByString('H1')); // ✅ Changed to H
     var titleCell = sheet.cell(CellIndex.indexByString('A1'));
     titleCell.value = TextCellValue(
         '${seller.name} - ${DateFormat.MMMM().format(DateTime(0, month))} $year Report');
@@ -37,11 +38,12 @@ class ReportService {
     // Headers
     final headers = [
       'Car Part',
-      'Price',
+      'Total Price', // ✅ NEW
       'Purchase Price',
       'Total Paid',
       'Amount Owed',
-      'Actual Gain'
+      'Actual Gain',
+      'Monthly Owed'
     ];
     for (var i = 0; i < headers.length; i++) {
       var cell =
@@ -57,9 +59,11 @@ class ReportService {
         .toList();
 
     int row = 3;
+    double totalSellingPriceSum = 0; // ✅ NEW
     double totalRevenue = 0;
     double totalCost = 0;
     double totalGain = 0;
+    double totalMonthlyOwed = 0;
 
     // Data rows
     for (var carPart in monthlyCarParts) {
@@ -73,16 +77,22 @@ class ReportService {
       // ✅ SIMPLE: Gain = Payments - Cost
       final actualGain = totalPayments - totalPurchasePrice;
 
+      // ✅ Monthly Owed = How much is still owed for this car part
+      final monthlyOwed = carPart.amountOwed;
+
+      totalSellingPriceSum += totalSellingPrice; // ✅ NEW
       totalRevenue += totalPayments;
       totalCost += totalPurchasePrice;
       totalGain += actualGain;
+      totalMonthlyOwed += monthlyOwed;
 
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
           .value = TextCellValue(carPart.name);
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .value = TextCellValue('\$${totalSellingPrice.toStringAsFixed(2)}');
+              .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+              .value =
+          TextCellValue('\$${totalSellingPrice.toStringAsFixed(2)}'); // ✅ NEW
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
           .value = TextCellValue('\$${totalPurchasePrice.toStringAsFixed(2)}');
@@ -95,6 +105,9 @@ class ReportService {
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
           .value = TextCellValue('\$${actualGain.toStringAsFixed(2)}');
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
+          .value = TextCellValue('\$${monthlyOwed.toStringAsFixed(2)}');
 
       row++;
     }
@@ -114,6 +127,14 @@ class ReportService {
         .cellStyle = summaryStyle;
 
     sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+            .value =
+        TextCellValue('\$${totalSellingPriceSum.toStringAsFixed(2)}'); // ✅ NEW
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+        .cellStyle = summaryStyle;
+
+    sheet
         .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
         .value = TextCellValue('\$${totalRevenue.toStringAsFixed(2)}');
     sheet
@@ -125,6 +146,13 @@ class ReportService {
         .value = TextCellValue('\$${totalGain.toStringAsFixed(2)}');
     sheet
         .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
+        .cellStyle = summaryStyle;
+
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
+        .value = TextCellValue('\$${totalMonthlyOwed.toStringAsFixed(2)}');
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
         .cellStyle = summaryStyle;
 
     // Save file
@@ -150,9 +178,11 @@ class ReportService {
             part.dateAdded.month == month && part.dateAdded.year == year)
         .toList();
 
+    double totalSellingPriceSum = 0; // ✅ NEW
     double totalRevenue = 0;
     double totalCost = 0;
     double totalGain = 0;
+    double totalMonthlyOwed = 0;
 
     final tableData = <List<String>>[];
 
@@ -166,24 +196,29 @@ class ReportService {
 
       // ✅ SIMPLE: Gain = Payments - Cost
       final actualGain = totalPayments - totalPurchasePrice;
+      final monthlyOwed = carPart.amountOwed;
 
+      totalSellingPriceSum += totalSellingPrice; // ✅ NEW
       totalRevenue += totalPayments;
       totalCost += totalPurchasePrice;
       totalGain += actualGain;
+      totalMonthlyOwed += monthlyOwed;
 
       tableData.add([
         carPart.name,
-        '\$${totalSellingPrice.toStringAsFixed(2)}',
+        '\$${totalSellingPrice.toStringAsFixed(2)}', // ✅ NEW
         '\$${totalPurchasePrice.toStringAsFixed(2)}',
         '\$${totalPayments.toStringAsFixed(2)}',
         '\$${carPart.amountOwed.toStringAsFixed(2)}',
         '\$${actualGain.toStringAsFixed(2)}',
+        '\$${monthlyOwed.toStringAsFixed(2)}',
       ]);
     }
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: PdfPageFormat
+            .a4.landscape, // ✅ Change to landscape for more columns
         build: (context) => [
           // Title
           pw.Header(
@@ -203,11 +238,12 @@ class ReportService {
           pw.Table.fromTextArray(
             headers: [
               'Car Part',
-              'Price',
+              'Total Price', // ✅ NEW
               'Purchase Price',
               'Total Paid',
               'Amount Owed',
-              'Actual Gain'
+              'Actual Gain',
+              'Monthly Owed'
             ],
             data: tableData,
             headerStyle: pw.TextStyle(
@@ -216,7 +252,8 @@ class ReportService {
             ),
             headerDecoration: const pw.BoxDecoration(color: PdfColors.green),
             cellAlignment: pw.Alignment.centerLeft,
-            cellStyle: const pw.TextStyle(fontSize: 10),
+            cellStyle: const pw.TextStyle(
+                fontSize: 8), // ✅ Smaller font for more columns
           ),
 
           pw.SizedBox(height: 20),
@@ -238,6 +275,17 @@ class ReportService {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
+                    pw.Text('Total Selling Price:', // ✅ NEW
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('\$${totalSellingPriceSum.toStringAsFixed(2)}',
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.blue)),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
                     pw.Text('Total Revenue:',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     pw.Text('\$${totalRevenue.toStringAsFixed(2)}',
@@ -253,6 +301,17 @@ class ReportService {
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                   ],
                 ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Total Monthly Owed:',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('\$${totalMonthlyOwed.toStringAsFixed(2)}',
+                        style: pw.TextStyle(
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.orange)),
+                  ],
+                ),
                 pw.Divider(thickness: 2),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -264,7 +323,9 @@ class ReportService {
                         style: pw.TextStyle(
                             fontSize: 16,
                             fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.green)),
+                            color: totalGain >= 0
+                                ? PdfColors.green
+                                : PdfColors.red)),
                   ],
                 ),
               ],
@@ -301,7 +362,8 @@ class ReportService {
     final sheet = excel['All Sellers Report'];
 
     // Title
-    sheet.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('E1'));
+    sheet.merge(CellIndex.indexByString('A1'),
+        CellIndex.indexByString('G1')); // ✅ Changed to G
     var titleCell = sheet.cell(CellIndex.indexByString('A1'));
     titleCell.value = TextCellValue(
         'All Sellers - ${DateFormat.MMMM().format(DateTime(0, month))} $year Report');
@@ -316,9 +378,11 @@ class ReportService {
 
     final headers = [
       'Seller Name',
+      'Total Selling Price', // ✅ NEW
       'Total Revenue',
       'Total Cost',
       'Total Gain',
+      'Monthly Owed',
       'Car Parts'
     ];
     for (var i = 0; i < headers.length; i++) {
@@ -329,9 +393,11 @@ class ReportService {
     }
 
     int row = 3;
+    double grandTotalSellingPrice = 0; // ✅ NEW
     double grandTotalRevenue = 0;
     double grandTotalCost = 0;
     double grandTotalGain = 0;
+    double grandTotalMonthlyOwed = 0;
 
     for (var seller in sellers) {
       // ✅ Filter car parts ADDED in selected month
@@ -340,9 +406,11 @@ class ReportService {
               part.dateAdded.month == month && part.dateAdded.year == year)
           .toList();
 
+      double sellerTotalSellingPrice = 0; // ✅ NEW
       double sellerRevenue = 0;
       double sellerCost = 0;
       double sellerGain = 0;
+      double sellerMonthlyOwed = 0;
 
       for (var carPart in monthlyCarParts) {
         final totalSellingPrice = carPart.price * carPart.quantity;
@@ -355,29 +423,41 @@ class ReportService {
         // ✅ SIMPLE: Gain = Payments - Cost
         final actualGain = totalPayments - totalPurchasePrice;
 
+        sellerTotalSellingPrice += totalSellingPrice; // ✅ NEW
         sellerRevenue += totalPayments;
         sellerCost += totalPurchasePrice;
         sellerGain += actualGain;
+        sellerMonthlyOwed += carPart.amountOwed;
       }
 
+      grandTotalSellingPrice += sellerTotalSellingPrice; // ✅ NEW
       grandTotalRevenue += sellerRevenue;
       grandTotalCost += sellerCost;
       grandTotalGain += sellerGain;
+      grandTotalMonthlyOwed += sellerMonthlyOwed;
 
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
           .value = TextCellValue(seller.name);
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .value = TextCellValue('\$${sellerRevenue.toStringAsFixed(2)}');
+              .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+              .value =
+          TextCellValue(
+              '\$${sellerTotalSellingPrice.toStringAsFixed(2)}'); // ✅ NEW
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-          .value = TextCellValue('\$${sellerCost.toStringAsFixed(2)}');
+          .value = TextCellValue('\$${sellerRevenue.toStringAsFixed(2)}');
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .value = TextCellValue('\$${sellerGain.toStringAsFixed(2)}');
+          .value = TextCellValue('\$${sellerCost.toStringAsFixed(2)}');
       sheet
           .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
+          .value = TextCellValue('\$${sellerGain.toStringAsFixed(2)}');
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
+          .value = TextCellValue('\$${sellerMonthlyOwed.toStringAsFixed(2)}');
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
           .value = TextCellValue(monthlyCarParts.length.toString());
 
       row++;
@@ -398,24 +478,40 @@ class ReportService {
         .cellStyle = summaryStyle;
 
     sheet
+            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+            .value =
+        TextCellValue(
+            '\$${grandTotalSellingPrice.toStringAsFixed(2)}'); // ✅ NEW
+    sheet
         .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+        .cellStyle = summaryStyle;
+
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
         .value = TextCellValue('\$${grandTotalRevenue.toStringAsFixed(2)}');
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+        .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
         .cellStyle = summaryStyle;
 
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+        .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
         .value = TextCellValue('\$${grandTotalCost.toStringAsFixed(2)}');
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+        .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
         .cellStyle = summaryStyle;
 
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+        .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
         .value = TextCellValue('\$${grandTotalGain.toStringAsFixed(2)}');
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+        .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
+        .cellStyle = summaryStyle;
+
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
+        .value = TextCellValue('\$${grandTotalMonthlyOwed.toStringAsFixed(2)}');
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
         .cellStyle = summaryStyle;
 
     final directory = await getApplicationDocumentsDirectory();
@@ -435,7 +531,9 @@ class ReportService {
     final pdf = pw.Document();
 
     // ✅ Calculate gain for car parts ADDED in selected month
+    double totalSellingPriceSum = 0.0; // ✅ NEW
     double totalGainFromPayments = 0.0;
+    double totalMonthlyOwed = 0.0;
     final sellerData = <Map<String, dynamic>>[];
 
     for (final seller in sellers) {
@@ -445,7 +543,9 @@ class ReportService {
             carPart.dateAdded.year == year;
       }).toList();
 
+      double sellerTotalSellingPrice = 0.0; // ✅ NEW
       double sellerGain = 0.0;
+      double sellerMonthlyOwed = 0.0;
 
       for (var carPart in carPartsForMonth) {
         final totalSellingPrice = carPart.price * carPart.quantity;
@@ -457,20 +557,28 @@ class ReportService {
 
         // ✅ SIMPLE: Gain = Payments - Cost
         final actualGain = totalPayments - totalPurchasePrice;
+
+        sellerTotalSellingPrice += totalSellingPrice; // ✅ NEW
         sellerGain += actualGain;
+        sellerMonthlyOwed += carPart.amountOwed;
       }
 
+      totalSellingPriceSum += sellerTotalSellingPrice; // ✅ NEW
       totalGainFromPayments += sellerGain;
+      totalMonthlyOwed += sellerMonthlyOwed;
+
       sellerData.add({
         'name': seller.name,
+        'totalSellingPrice': sellerTotalSellingPrice, // ✅ NEW
         'owed': seller.getTotalOwed(),
         'gain': sellerGain,
+        'monthlyOwed': sellerMonthlyOwed,
       });
     }
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: PdfPageFormat.a4.landscape, // ✅ Landscape for more columns
         build: (pw.Context context) {
           return [
             // Header
@@ -511,6 +619,15 @@ class ReportService {
                   ),
                   pw.SizedBox(height: 8),
                   pw.Text(
+                    'Total Selling Price: \$${totalSellingPriceSum.toStringAsFixed(2)}', // ✅ NEW
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.blue,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
                     'Total Gain from Car Parts Added This Month: \$${totalGainFromPayments.toStringAsFixed(2)}',
                     style: pw.TextStyle(
                       fontSize: 16,
@@ -518,6 +635,15 @@ class ReportService {
                       color: totalGainFromPayments >= 0
                           ? PdfColors.green
                           : PdfColors.red,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Total Monthly Owed: \$${totalMonthlyOwed.toStringAsFixed(2)}',
+                    style: pw.TextStyle(
+                      fontSize: 14,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.orange,
                     ),
                   ),
                   pw.SizedBox(height: 4),
@@ -543,18 +669,33 @@ class ReportService {
                   decoration: const pw.BoxDecoration(color: PdfColors.grey300),
                   children: [
                     _buildTableCell('Seller Name', isHeader: true),
+                    _buildTableCell('Total Selling Price',
+                        isHeader: true), // ✅ NEW
                     _buildTableCell('Total Owed', isHeader: true),
+                    _buildTableCell('Monthly Owed', isHeader: true),
                     _buildTableCell('Monthly Gain', isHeader: true),
                   ],
                 ),
                 // Data Rows
                 ...sellerData.map((data) {
                   final monthlyGain = data['gain'] as double;
+                  final monthlyOwed = data['monthlyOwed'] as double;
+                  final totalSellingPrice =
+                      data['totalSellingPrice'] as double; // ✅ NEW
                   return pw.TableRow(
                     children: [
                       _buildTableCell(data['name'] as String),
                       _buildTableCell(
+                        // ✅ NEW
+                        '\$${totalSellingPrice.toStringAsFixed(2)}',
+                        textColor: PdfColors.blue,
+                      ),
+                      _buildTableCell(
                           '\$${(data['owed'] as double).toStringAsFixed(2)}'),
+                      _buildTableCell(
+                        '\$${monthlyOwed.toStringAsFixed(2)}',
+                        textColor: PdfColors.orange,
+                      ),
                       _buildTableCell(
                         '\$${monthlyGain.toStringAsFixed(2)}',
                         textColor:
@@ -586,7 +727,11 @@ class ReportService {
                   pw.SizedBox(height: 8),
                   pw.Text('Total Sellers: ${sellers.length}'),
                   pw.Text(
+                      'Total Selling Price (Monthly): \$${totalSellingPriceSum.toStringAsFixed(2)}'), // ✅ NEW
+                  pw.Text(
                       'Total Owed (All Time): \$${sellers.fold(0.0, (sum, s) => sum + s.getTotalOwed()).toStringAsFixed(2)}'),
+                  pw.Text(
+                      'Total Monthly Owed: \$${totalMonthlyOwed.toStringAsFixed(2)}'),
                   pw.Text(
                       'Total Monthly Gain: \$${totalGainFromPayments.toStringAsFixed(2)}'),
                 ],
