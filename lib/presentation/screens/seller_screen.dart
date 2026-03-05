@@ -119,21 +119,19 @@ class _SellerScreenState extends State<SellerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ CALCULATE OUTSIDE BlocBuilder
     double netGain = 0.0;
 
-    final sellerState =
-        context.watch<SellerCubit>().state; // ✅ Use watch instead of read
+    final sellerState = context.watch<SellerCubit>().state;
 
     if (sellerState is SellerLoaded) {
-      final totalGainFromPayments =
-          sellerState.sellers.fold(0.0, (sum, seller) {
-        return sum +
-            seller.getActualMonthlyGain(
-                month: selectedMonth, year: selectedYear);
-      });
+      // ✅ SIMPLIFIED: Use the seller's method
+      double totalGainFromPayments = 0.0;
+      for (var seller in sellerState.sellers) {
+        totalGainFromPayments +=
+            seller.getMonthlyGainForMonth(selectedMonth, selectedYear);
+      }
 
-      final driverState = context.watch<DriverCubit>().state; // ✅ Use watch
+      final driverState = context.watch<DriverCubit>().state;
       final totalDriverCost = driverState is DriverLoaded
           ? driverState.drivers.fold(0.0, (sum, driver) {
               final monthlyCost = driver.trips
@@ -145,8 +143,7 @@ class _SellerScreenState extends State<SellerScreen> {
             })
           : 0.0;
 
-      final personalState =
-          context.watch<PersonalSpendCubit>().state; // ✅ Use watch
+      final personalState = context.watch<PersonalSpendCubit>().state;
       final totalPersonalPaid = personalState is PersonalSpendLoaded
           ? personalState.personalSpends.fold(0.0, (sum, personalSpend) {
               final monthlyCost = personalSpend.date.month == selectedMonth &&
@@ -199,27 +196,11 @@ class _SellerScreenState extends State<SellerScreen> {
               return BlocBuilder<SellerCubit, SellerState>(
                 builder: (context, sellerState) {
                   if (sellerState is SellerLoaded) {
-                    // ✅ Calculate gain for car parts ADDED in selected month
+                    // ✅ SIMPLIFIED: Use the seller's method
                     double totalGainFromPayments = 0.0;
-
-                    // In the AppBar BlocBuilder (around line 180):
-
                     for (var seller in sellerState.sellers) {
-                      final carPartsForMonth = seller.carParts.where((carPart) {
-                        return carPart.dateAdded.month == selectedMonth &&
-                            carPart.dateAdded.year == selectedYear;
-                      }).toList();
-
-                      for (var carPart in carPartsForMonth) {
-                        final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
-
-                        double totalPayments = carPart.payments
-                            .fold(0.0, (sum, payment) => sum + payment.amount);
-
-                        // ✅ SIMPLE: Gain = Payments - Cost
-                        final actualGain = totalPayments - totalPurchasePrice;
-                        totalGainFromPayments += actualGain;
-                      }
+                      totalGainFromPayments += seller.getMonthlyGainForMonth(
+                          selectedMonth, selectedYear);
                     }
 
                     final totalDriverCost = context.read<DriverCubit>().state
@@ -559,6 +540,7 @@ class _SellerScreenState extends State<SellerScreen> {
                             final monthlyGain =
                                 _calculateMonthlyGainForPayments(
                                     seller, selectedMonth, selectedYear);
+                            final isPositive = monthlyGain >= 0;
 
                             return Container(
                               margin: const EdgeInsets.symmetric(
@@ -584,8 +566,10 @@ class _SellerScreenState extends State<SellerScreen> {
                                         'Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}'),
                                     Text(
                                         'Monthly Gain: \$${monthlyGain.toStringAsFixed(2)}', // ✅ FIXED
-                                        style: const TextStyle(
-                                          color: Colors.green,
+                                        style: TextStyle(
+                                          color: isPositive
+                                              ? Colors.green
+                                              : Colors.red,
                                           fontWeight: FontWeight.bold,
                                         )),
                                   ],
@@ -1106,30 +1090,13 @@ class _SellerScreenState extends State<SellerScreen> {
 
   /// Calculate monthly gain ONLY from payments received in the selected month
   /// Calculate monthly gain ONLY from car parts ADDED in the selected month
+  /// ✅ CORRECT: Calculate monthly gain ONLY from car parts ADDED in the selected month
   double _calculateMonthlyGainForPayments(Seller seller, int month, int year) {
-    double totalMonthlyGain = 0.0;
-
-    // ✅ FILTER car parts by dateAdded FIRST
-    final carPartsForSelectedMonth = seller.carParts.where((carPart) {
-      return carPart.dateAdded.month == month && carPart.dateAdded.year == year;
-    }).toList();
-
-    for (var carPart in carPartsForSelectedMonth) {
-      final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
-
-      // Count ALL payments for this car part
-      double totalPayments =
-          carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
-
-      // ✅ SIMPLE CALCULATION: Gain = Payments - Purchase Cost
-      final actualGain = totalPayments - totalPurchasePrice;
-      totalMonthlyGain += actualGain;
-    }
-
-    return totalMonthlyGain;
+    return seller.getMonthlyGainForMonth(month, year);
   }
 
   /// Auto-save current month's gain whenever data changes
+  /// ✅ FIXED: Auto-save current month's gain whenever data changes
   void _autoSaveCurrentMonthGain(BuildContext context) {
     final sellerState = context.read<SellerCubit>().state;
     if (sellerState is! SellerLoaded) return;
@@ -1137,25 +1104,11 @@ class _SellerScreenState extends State<SellerScreen> {
     final currentMonth = DateTime.now().month;
     final currentYear = DateTime.now().year;
 
-    // Calculate gain for car parts ADDED in current month
+    // ✅ Calculate gain using the FIXED method
     double totalGainFromPayments = 0.0;
-
     for (var seller in sellerState.sellers) {
-      final carPartsForMonth = seller.carParts.where((carPart) {
-        return carPart.dateAdded.month == currentMonth &&
-            carPart.dateAdded.year == currentYear;
-      }).toList();
-
-      for (var carPart in carPartsForMonth) {
-        final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
-
-        double totalPayments =
-            carPart.payments.fold(0.0, (sum, payment) => sum + payment.amount);
-
-        // ✅ SIMPLE: Gain = Payments - Cost
-        final actualGain = totalPayments - totalPurchasePrice;
-        totalGainFromPayments += actualGain;
-      }
+      totalGainFromPayments +=
+          seller.getMonthlyGainForMonth(currentMonth, currentYear);
     }
 
     final driverState = context.read<DriverCubit>().state;

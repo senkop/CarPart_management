@@ -198,11 +198,27 @@ class SellerCubit extends Cubit<SellerState> {
     }
   }
 
+  // ✅ FIXED: Sort by current month's gain
   void sortSellersByGains() {
     if (state is SellerLoaded) {
       final sellers = (state as SellerLoaded).sellers;
-      sellers.sort((a, b) =>
-          b.getActualMonthlyGain().compareTo(a.getActualMonthlyGain()));
+      final currentMonth = DateTime.now().month;
+      final currentYear = DateTime.now().year;
+
+      sellers.sort((a, b) => b
+          .getMonthlyGainForMonth(currentMonth, currentYear)
+          .compareTo(a.getMonthlyGainForMonth(currentMonth, currentYear)));
+
+      emit(SellerLoaded(sellers));
+    }
+  }
+
+  // ✅ OR if you want to sort by TOTAL gain (all time):
+  void sortSellersByTotalGains() {
+    if (state is SellerLoaded) {
+      final sellers = (state as SellerLoaded).sellers;
+      sellers.sort(
+          (a, b) => b.getTotalActualGain().compareTo(a.getTotalActualGain()));
       emit(SellerLoaded(sellers));
     }
   }

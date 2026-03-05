@@ -19,84 +19,114 @@ class Seller {
     this.monthlyGain = 0.0,
   });
 
-  /// Get total amount owed across all car parts
+  // ═══════════════════════════════════════════════════════════════
+  // 💰 FINANCIAL CALCULATION METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  /// ✅ Get total amount owed across all car parts
   double getTotalOwed() {
     return carParts.fold(0.0, (sum, carPart) => sum + carPart.amountOwed);
   }
 
-  /// ✅ UPDATED: Calculate gain for car parts ADDED in specific month
+  /// ✅ Calculate gain ONLY from car parts ADDED in specific month
+  /// This is the CORRECT method that matches Seller Detail Screen
+  double getMonthlyGainForMonth(int month, int year) {
+    double totalGain = 0.0;
+
+    // Filter car parts by dateAdded
+    final carPartsForMonth = carParts.where((carPart) {
+      return carPart.dateAdded.month == month && carPart.dateAdded.year == year;
+    }).toList();
+
+    // Sum up actual gain from those car parts
+    for (var carPart in carPartsForMonth) {
+      totalGain += carPart.getActualGain();
+    }
+
+    return totalGain;
+  }
+
+  /// ✅ DEPRECATED but keeping for backward compatibility
+  /// Use getMonthlyGainForMonth() instead
   double getActualMonthlyGain({int? month, int? year}) {
     final targetMonth = month ?? DateTime.now().month;
     final targetYear = year ?? DateTime.now().year;
 
-    print('\n🔍 Calculating gain for $name - Month: $targetMonth/$targetYear');
-
-    double totalActualGain = 0.0;
-
-    // ✅ Filter car parts by dateAdded
-    final carPartsForMonth = carParts.where((carPart) {
-      return carPart.dateAdded.month == targetMonth &&
-          carPart.dateAdded.year == targetYear;
-    }).toList();
-
-    for (var carPart in carPartsForMonth) {
-      // ✅ Use new helper methods
-      final totalPurchasePrice = carPart.getTotalPurchasePrice();
-      final totalPayments = carPart.getTotalPayments();
-
-      // ✅ SIMPLE: Gain = Payments - Cost
-      final actualGain = totalPayments - totalPurchasePrice;
-
-      print('🔍 Car Part: ${carPart.name}');
-      print(
-          '   Total Selling Price: \$${carPart.getTotalSellingPrice().toStringAsFixed(2)}');
-      print(
-          '   Total Purchase Price: \$${totalPurchasePrice.toStringAsFixed(2)}');
-      print('   Total Payments: \$${totalPayments.toStringAsFixed(2)}');
-      print('   ✅ Actual Gain: \$${actualGain.toStringAsFixed(2)}');
-
-      if (carPart.subItems.isNotEmpty) {
-        print('   📦 Sub-Items: ${carPart.subItems.length}');
-        for (var subItem in carPart.subItems) {
-          print(
-              '      - ${subItem.name}: ${subItem.quantity}x \$${subItem.price}');
-        }
-      }
-
-      totalActualGain += actualGain;
-    }
-
-    print(
-        '   💰 Total Gain for Month: \$${totalActualGain.toStringAsFixed(2)}');
-
-    return totalActualGain;
+    return getMonthlyGainForMonth(targetMonth, targetYear);
   }
 
-  /// Get payments received in a specific month (simple sum)
+  /// ✅ Get total actual gain across ALL car parts (all time)
+  double getTotalActualGain() {
+    return carParts.fold(0.0, (sum, carPart) => sum + carPart.getActualGain());
+  }
+
+  /// ✅ Get total potential gain across ALL car parts (all time)
+  double getTotalPotentialGain() {
+    return carParts.fold(
+        0.0, (sum, carPart) => sum + carPart.getPotentialGain());
+  }
+
+  /// ✅ Get total payments received (all time)
+  double getTotalPaymentsReceived() {
+    return carParts.fold(
+        0.0, (sum, carPart) => sum + carPart.getTotalPayments());
+  }
+
+  /// ✅ Get payments received in a specific month
   double getMonthlyPayments({required int month, required int year}) {
     double total = 0.0;
 
-    print('   🔎 Checking payments for ${name}:');
-
     for (var carPart in carParts) {
-      double carPartPayments = 0.0;
-
       for (var payment in carPart.payments) {
         if (payment.date.month == month && payment.date.year == year) {
-          carPartPayments += payment.amount;
-          print(
-              '      ✅ ${carPart.name}: \$${payment.amount.toStringAsFixed(2)} on ${payment.date}');
+          total += payment.amount;
         }
       }
-
-      total += carPartPayments;
     }
 
-    print('   📊 Total payments for ${name}: \$${total.toStringAsFixed(2)}');
     return total;
   }
 
-  // Serialization methods
+  /// ✅ Get total selling price of all car parts (all time)
+  double getTotalSellingPrice() {
+    return carParts.fold(
+        0.0, (sum, carPart) => sum + carPart.getTotalSellingPrice());
+  }
+
+  /// ✅ Get total purchase cost of all car parts (all time)
+  double getTotalPurchaseCost() {
+    return carParts.fold(
+        0.0, (sum, carPart) => sum + carPart.getTotalPurchasePrice());
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🔄 COPY METHOD
+  // ═══════════════════════════════════════════════════════════════
+
+  Seller copyWith({
+    String? id,
+    String? name,
+    List<CarPart>? carParts,
+    String? phone,
+    String? pin,
+    bool? isPinned,
+    double? monthlyGain,
+  }) {
+    return Seller(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      carParts: carParts ?? this.carParts,
+      phone: phone ?? this.phone,
+      pin: pin ?? this.pin,
+      isPinned: isPinned ?? this.isPinned,
+      monthlyGain: monthlyGain ?? this.monthlyGain,
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 📄 SERIALIZATION METHODS (Firebase/JSON)
+  // ═══════════════════════════════════════════════════════════════
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -122,5 +152,69 @@ class Seller {
               .toList() ??
           [],
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🔍 UTILITY METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Get number of car parts added in a specific month
+  int getMonthlyCarPartsCount(int month, int year) {
+    return carParts.where((carPart) {
+      return carPart.dateAdded.month == month && carPart.dateAdded.year == year;
+    }).length;
+  }
+
+  /// Get car parts added in a specific month
+  List<CarPart> getCarPartsForMonth(int month, int year) {
+    return carParts.where((carPart) {
+      return carPart.dateAdded.month == month && carPart.dateAdded.year == year;
+    }).toList();
+  }
+
+  /// Check if seller has any unpaid amounts
+  bool hasUnpaidAmounts() {
+    return getTotalOwed() > 0;
+  }
+
+  /// Get payment completion percentage (0-100)
+  double getPaymentCompletionPercentage() {
+    final totalSelling = getTotalSellingPrice();
+    if (totalSelling == 0) return 100.0;
+
+    final totalPaid = getTotalPaymentsReceived();
+    return (totalPaid / totalSelling * 100).clamp(0.0, 100.0);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🎯 EQUALITY & HASH CODE (for state management)
+  // ═══════════════════════════════════════════════════════════════
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is Seller &&
+        other.id == id &&
+        other.name == name &&
+        other.phone == phone &&
+        other.pin == pin &&
+        other.isPinned == isPinned &&
+        other.monthlyGain == monthlyGain;
+  }
+
+  @override
+  int get hashCode {
+    return id.hashCode ^
+        name.hashCode ^
+        phone.hashCode ^
+        pin.hashCode ^
+        isPinned.hashCode ^
+        monthlyGain.hashCode;
+  }
+
+  @override
+  String toString() {
+    return 'Seller(id: $id, name: $name, carParts: ${carParts.length}, totalOwed: \$${getTotalOwed().toStringAsFixed(2)})';
   }
 }

@@ -35,8 +35,8 @@ class CarPart {
   // ✅ Calculate total purchase cost (including sub-items)
   double getTotalPurchasePrice() {
     double mainCost = purchasePrice ?? 0.0;
-    double subItemsCost =
-        subItems.fold(0.0, (sum, item) => sum + ((item.purchasePrice ?? 0.0)));
+    double subItemsCost = subItems.fold(0.0,
+        (sum, item) => sum + ((item.purchasePrice ?? 0.0) * item.quantity));
     return mainCost + subItemsCost;
   }
 
@@ -47,7 +47,14 @@ class CarPart {
 
   // ✅ Calculate actual gain (Payments - Total Cost)
   double getActualGain() {
-    return getTotalPayments() - getTotalPurchasePrice();
+    // Total purchase cost (main item + sub-items)
+    final totalCost = getTotalPurchasePrice();
+
+    // Total payments received (regardless of when they were paid)
+    final totalPaid = getTotalPayments();
+
+    // ✅ Actual Gain = Payments Received - Total Cost
+    return totalPaid - totalCost;
   }
 
   // ✅ Calculate potential gain (if fully paid)

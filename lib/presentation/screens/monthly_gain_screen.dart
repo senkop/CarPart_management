@@ -681,39 +681,34 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
         print('📅 Month: $month/$year');
         print('=' * 50);
 
-        // ✅ A. Calculate gain from car parts ADDED in this month
+        // ✅ A. Calculate gain using the NEW model method
         double totalActualGain = 0.0;
 
         for (var seller in sellerState.sellers) {
-          // ✅ Filter car parts by dateAdded
-          final carPartsForMonth = seller.carParts.where((carPart) {
-            return carPart.dateAdded.month == month &&
-                carPart.dateAdded.year == year;
-          }).toList();
-
-          double sellerGain = 0.0;
-
-          for (var carPart in carPartsForMonth) {
-            final totalPurchasePrice = carPart.purchasePrice ?? 0.0;
-
-            double totalPayments = carPart.payments
-                .fold(0.0, (sum, payment) => sum + payment.amount);
-
-            // ✅ SIMPLE: Gain = Payments - Cost
-            final actualGain = totalPayments - totalPurchasePrice;
-            sellerGain += actualGain;
-
-            print('   📦 ${carPart.name}: \$${actualGain.toStringAsFixed(2)}');
-          }
+          // ✅ Use the seller's method (matches Seller Detail Screen logic)
+          final sellerGain = seller.getMonthlyGainForMonth(month, year);
 
           if (sellerGain != 0) {
-            print(
-                '💰 ${seller.name} Total: \$${sellerGain.toStringAsFixed(2)}');
+            print('💰 ${seller.name}: \$${sellerGain.toStringAsFixed(2)}');
+
+            // ✅ Optional: Show breakdown per car part
+            final carPartsForMonth = seller.getCarPartsForMonth(month, year);
+            for (var carPart in carPartsForMonth) {
+              final gain = carPart.getActualGain();
+              final totalCost = carPart.getTotalPurchasePrice();
+              final totalPaid = carPart.getTotalPayments();
+              print('   📦 ${carPart.name}:');
+              print('      Cost: \$${totalCost.toStringAsFixed(2)}');
+              print('      Paid: \$${totalPaid.toStringAsFixed(2)}');
+              print('      Gain: \$${gain.toStringAsFixed(2)}');
+            }
+
             totalActualGain += sellerGain;
           }
         }
 
-        print('✅ Total Actual Gain: \$${totalActualGain.toStringAsFixed(2)}\n');
+        print(
+            '\n✅ Total Seller Gain: \$${totalActualGain.toStringAsFixed(2)}\n');
 
         // B. Calculate driver costs
         double totalDriverCosts = 0.0;
@@ -732,8 +727,11 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
             }
           }
         }
-        print(
-            '🚚 Total Driver Costs: \$${totalDriverCosts.toStringAsFixed(2)}\n');
+
+        if (totalDriverCosts > 0) {
+          print(
+              '🚚 Total Driver Costs: \$${totalDriverCosts.toStringAsFixed(2)}\n');
+        }
 
         // C. Calculate personal expenses
         double totalPersonalExpenses = 0.0;
@@ -757,18 +755,19 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
             totalActualGain - totalDriverCosts - totalPersonalExpenses;
 
         print('═' * 50);
-        print('📊 SUMMARY:');
-        print('   Actual Gain:       +\$${totalActualGain.toStringAsFixed(2)}');
+        print('📊 MONTHLY SUMMARY:');
+        print('   Seller Gain:       +\$${totalActualGain.toStringAsFixed(2)}');
         print(
             '   Driver Costs:      -\$${totalDriverCosts.toStringAsFixed(2)}');
         print(
             '   Personal Expenses: -\$${totalPersonalExpenses.toStringAsFixed(2)}');
         print('   ─────────────────────────────────────');
-        print('   NET PROFIT:        =\$${netProfit.toStringAsFixed(2)}');
+        print(
+            '   NET PROFIT:        ${netProfit >= 0 ? "+" : ""}\$${netProfit.toStringAsFixed(2)}');
         print('═' * 50);
         print('\n');
 
-        // E. Save to Firebase
+        // E. Save to Firebase (only if there's any data)
         if (totalActualGain != 0 ||
             totalDriverCosts > 0 ||
             totalPersonalExpenses > 0) {
@@ -777,11 +776,18 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
             month,
             netProfit,
           );
-          print('✅ Saved to Firebase\n');
+          print('💾 Saved to Firebase\n');
+        } else {
+          print('⏭️  Skipped (no data for this month)\n');
         }
       }
     }
 
     print('🎉 Recalculation Complete!\n');
+    print('📊 Summary:');
+    print('   From: ${DateFormat.yMMM().format(earliestDate!)}');
+    print('   To:   ${DateFormat.yMMM().format(now)}');
+    print(
+        '   Total months processed: ${(now.year - earliestDate.year) * 12 + (now.month - earliestDate.month) + 1}');
   }
 }
