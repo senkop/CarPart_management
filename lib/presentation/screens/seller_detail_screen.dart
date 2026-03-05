@@ -1,5 +1,6 @@
 import 'package:elshaf3y_store/presentation/screens/payment_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:elshaf3y_store/presentation/cubit/seller_cubit.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/models/seller_model.dart';
@@ -39,6 +40,31 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
 
   final TransactionRepository _transactionRepository = TransactionRepository();
   final ReportService _reportService = ReportService();
+
+  final ScrollController _scrollController = ScrollController();
+  bool _showFab = true; // ✅ NEW
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll); // ✅ NEW
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose(); // ✅ NEW
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.userScrollDirection ==
+        ScrollDirection.reverse) {
+      if (_showFab) setState(() => _showFab = false);
+    } else if (_scrollController.position.userScrollDirection ==
+        ScrollDirection.forward) {
+      if (!_showFab) setState(() => _showFab = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -108,15 +134,23 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
           Expanded(child: _buildCarPartsList()),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          _clearCarPartControllers();
-          tempSubItems.clear();
-          _showAddSaleDialog(context);
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Add Sale'),
-        backgroundColor: Colors.blue,
+      floatingActionButton: AnimatedSlide(
+        duration: const Duration(milliseconds: 300),
+        offset: _showFab ? Offset.zero : const Offset(0, 2),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          opacity: _showFab ? 1.0 : 0.0,
+          child: FloatingActionButton.extended(
+            onPressed: () {
+              _clearCarPartControllers();
+              tempSubItems.clear();
+              _showAddSaleDialog(context);
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add Sale'),
+            backgroundColor: Colors.blue,
+          ),
+        ),
       ),
     );
   }
@@ -212,7 +246,13 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(12.0),
+            controller: _scrollController, // ✅ ADD THIS
+            padding: const EdgeInsets.only(
+              left: 12,
+              right: 12,
+              top: 12,
+              bottom: 90,
+            ),
             itemCount: carPartsForSelectedMonth.length,
             itemBuilder: (context, index) {
               final carPart = carPartsForSelectedMonth[
