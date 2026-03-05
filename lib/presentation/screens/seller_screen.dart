@@ -168,16 +168,15 @@ class _SellerScreenState extends State<SellerScreen> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
-                            'Net Monthly Gain:',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ), // ✅ Theme text
+                            '${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear: \$',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: netGain >= 0 ? Colors.green : Colors.red,
+                            ),
                           ),
                           Text(
-                            '${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear: \$${netGain.toStringAsFixed(2)}',
+                            netGain.toStringAsFixed(2),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,

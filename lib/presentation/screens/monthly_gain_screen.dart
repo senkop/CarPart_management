@@ -289,7 +289,7 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
                                   '$monthName ${gain.year}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     color: isCurrentMonth
                                         ? (isDark
                                             ? Colors.green.shade300
@@ -314,7 +314,7 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
                                       'Current',
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 10,
+                                        fontSize: 8,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -335,7 +335,7 @@ class _MonthlyGainsScreenState extends State<MonthlyGainsScreen> {
                                       '-',
                                       style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 10,
+                                        fontSize: 8,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),

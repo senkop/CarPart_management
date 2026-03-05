@@ -1006,6 +1006,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                             : null, // ✅ Theme
                                       ),
                                       child: ListTile(
+                                        isThreeLine: false, // ✅ Add this
                                         leading: CircleAvatar(
                                           backgroundColor: isDark
                                               ? Theme.of(context)
@@ -1026,37 +1027,70 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                                 ?.copyWith(
                                                     fontWeight: FontWeight
                                                         .w500)), // ✅ Theme
-                                        subtitle: Text(
-                                          '${subItem.quantity}x @ \$${subItem.price.toStringAsFixed(2)} ${subItem.purchasePrice != null ? "(Cost: \$${subItem.purchasePrice!.toStringAsFixed(2)})" : ""}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall, // ✅ Theme
-                                        ),
-                                        trailing: Row(
-                                          mainAxisSize: MainAxisSize.min,
+                                        subtitle: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
+                                            Expanded(
+                                              child: Text(
+                                                '${subItem.quantity}x @ \$${subItem.price.toStringAsFixed(2)} ${subItem.purchasePrice != null ? "(Cost: \$${subItem.purchasePrice!.toStringAsFixed(2)})" : ""}',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
                                             Text(
                                               '\$${(subItem.price * subItem.quantity).toStringAsFixed(2)}',
                                               style: Theme.of(context)
                                                   .textTheme
-                                                  .bodyMedium
+                                                  .bodySmall
                                                   ?.copyWith(
-                                                      fontWeight: FontWeight
-                                                          .bold), // ✅ Theme
-                                            ),
-                                            IconButton(
-                                              icon: Icon(Icons.delete_outline,
-                                                  color: isDark
-                                                      ? Colors.red.shade300
-                                                      : Colors.red,
-                                                  size: 20), // ✅ Theme
-                                              onPressed: () {
-                                                setState(() {
-                                                  tempSubItems.removeAt(idx);
-                                                });
-                                              },
+                                                      fontWeight:
+                                                          FontWeight.bold),
                                             ),
                                           ],
+                                        ),
+                                        trailing: SizedBox(
+                                          // ✅ Wrap in SizedBox to control width
+                                          width:
+                                              96, // ✅ Reduced width - just icons
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
+                                            children: [
+                                              // ✅ Edit Button
+                                              IconButton(
+                                                icon: Icon(Icons.edit_outlined,
+                                                    color: isDark
+                                                        ? Colors.blue.shade300
+                                                        : Colors.blue,
+                                                    size: 18), // ✅ Smaller icon
+                                                onPressed: () =>
+                                                    _showEditSubItemDialog(
+                                                        context,
+                                                        setState,
+                                                        idx,
+                                                        subItem),
+                                              ),
+                                              // ✅ Delete Button
+                                              IconButton(
+                                                icon: Icon(Icons.delete_outline,
+                                                    color: isDark
+                                                        ? Colors.red.shade300
+                                                        : Colors.red,
+                                                    size: 18), // ✅ Smaller icon
+                                                onPressed: () {
+                                                  setState(() {
+                                                    tempSubItems.removeAt(idx);
+                                                  });
+                                                },
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     );
@@ -1658,6 +1692,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                             : null, // ✅ Theme
                                       ),
                                       child: ListTile(
+                                        isThreeLine: false, // ✅ Add this
                                         leading: CircleAvatar(
                                           backgroundColor: isDark
                                               ? Theme.of(context)
@@ -1678,52 +1713,70 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                                 ?.copyWith(
                                                     fontWeight: FontWeight
                                                         .w500)), // ✅ Theme
-                                        subtitle: Text(
-                                          '${subItem.quantity}x @ \$${subItem.price.toStringAsFixed(2)} ${subItem.purchasePrice != null ? "(Cost: \$${subItem.purchasePrice!.toStringAsFixed(2)})" : ""}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall, // ✅ Theme
-                                        ),
-                                        trailing: Row(
-                                          mainAxisSize: MainAxisSize.min,
+                                        subtitle: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
+                                            Expanded(
+                                              child: Text(
+                                                '${subItem.quantity}x @ \$${subItem.price.toStringAsFixed(2)} ${subItem.purchasePrice != null ? "(Cost: \$${subItem.purchasePrice!.toStringAsFixed(2)})" : ""}',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
                                             Text(
                                               '\$${(subItem.price * subItem.quantity).toStringAsFixed(2)}',
                                               style: Theme.of(context)
                                                   .textTheme
-                                                  .bodyMedium
+                                                  .bodySmall
                                                   ?.copyWith(
-                                                      fontWeight: FontWeight
-                                                          .bold), // ✅ Theme
-                                            ),
-                                            // ✅ Edit Button
-                                            IconButton(
-                                              icon: Icon(Icons.edit_outlined,
-                                                  color: isDark
-                                                      ? Colors.blue.shade300
-                                                      : Colors.blue,
-                                                  size: 20), // ✅ Theme
-                                              onPressed: () =>
-                                                  _showEditSubItemDialog(
-                                                      context,
-                                                      setState,
-                                                      idx,
-                                                      subItem),
-                                            ),
-                                            // ✅ Delete Button
-                                            IconButton(
-                                              icon: Icon(Icons.delete_outline,
-                                                  color: isDark
-                                                      ? Colors.red.shade300
-                                                      : Colors.red,
-                                                  size: 20), // ✅ Theme
-                                              onPressed: () {
-                                                setState(() {
-                                                  tempSubItems.removeAt(idx);
-                                                });
-                                              },
+                                                      fontWeight:
+                                                          FontWeight.bold),
                                             ),
                                           ],
+                                        ),
+                                        trailing: SizedBox(
+                                          // ✅ Wrap in SizedBox to control width
+                                          width:
+                                              96, // ✅ Reduced width - just icons
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.end,
+                                            children: [
+                                              // ✅ Edit Button
+                                              IconButton(
+                                                icon: Icon(Icons.edit_outlined,
+                                                    color: isDark
+                                                        ? Colors.blue.shade300
+                                                        : Colors.blue,
+                                                    size: 18), // ✅ Smaller icon
+                                                onPressed: () =>
+                                                    _showEditSubItemDialog(
+                                                        context,
+                                                        setState,
+                                                        idx,
+                                                        subItem),
+                                              ),
+                                              // ✅ Delete Button
+                                              IconButton(
+                                                icon: Icon(Icons.delete_outline,
+                                                    color: isDark
+                                                        ? Colors.red.shade300
+                                                        : Colors.red,
+                                                    size: 18), // ✅ Smaller icon
+                                                onPressed: () {
+                                                  setState(() {
+                                                    tempSubItems.removeAt(idx);
+                                                  });
+                                                },
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     );
