@@ -1,4 +1,6 @@
 import 'package:elshaf3y_store/auth.dart';
+import 'package:elshaf3y_store/core/theme/app_theme.dart';
+import 'package:elshaf3y_store/presentation/cubit/theme_cubit.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/repositories/driver_repo.dart';
 import 'package:elshaf3y_store/features/seller_feature/data/repositories/monthly_record_repo.dart';
 import 'package:elshaf3y_store/features/seller_feature/domain/repositories/personal_repo.dart';
@@ -24,7 +26,6 @@ import 'package:elshaf3y_store/data/repositories/seller_repository.dart';
 import 'package:elshaf3y_store/domain/use_cases/update_car_part_use_case.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'presentation/cubit/seller_cubit.dart';
 import 'presentation/cubit/language_cubit.dart';
@@ -43,8 +44,8 @@ import 'presentation/screens/personal_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  // await EasyLocalization.ensureInitialized();
   final sharedPreferences = await SharedPreferences.getInstance();
+
   final sellerRepository = SellerRepository();
   final driverRepository = DriverRepository();
   final personalSpendRepository = PersonalSpendRepository();
@@ -54,45 +55,52 @@ void main() async {
   final addCarPartUseCase = AddCarPartUseCase(sellerRepository);
   final updateCarPartUseCase = UpdateCarPartUseCase(sellerRepository);
   final deleteSellerUseCase = DeleteSellerUseCase(sellerRepository);
-  final getTransactionHistoryUseCase = GetTransactionHistoryUseCase(sellerRepository);
+  final getTransactionHistoryUseCase =
+      GetTransactionHistoryUseCase(sellerRepository);
   final deleteCarPartUseCase = DeleteCarPartUseCase(sellerRepository);
   final updateSellerUseCase = UpdateSellerUseCase(sellerRepository);
   final getDriversUseCase = GetDriversUseCase(driverRepository);
   final addDriverUseCase = AddDriverUseCase(driverRepository);
   final updateDriverUseCase = UpdateDriverUseCase(driverRepository);
   final deleteDriverUseCase = DeleteDriverUseCase(driverRepository);
-  final getPersonalSpendsUseCase = GetPersonalSpendsUseCase(personalSpendRepository);
-  final addPersonalSpendUseCase = AddPersonalSpendUseCase(personalSpendRepository);
-  final updatePersonalSpendUseCase = UpdatePersonalSpendUseCase(personalSpendRepository);
-  final deletePersonalSpendUseCase = DeletePersonalSpendUseCase(personalSpendRepository);
-  final getMonthlyRecordsUseCase = GetMonthlyRecordsUseCase(monthlyRecordRepository);
-  final addMonthlyRecordUseCase = AddMonthlyRecordUseCase(monthlyRecordRepository);
-  final clearMonthlyRecordsUseCase = ClearMonthlyRecordsUseCase(monthlyRecordRepository);
+  final getPersonalSpendsUseCase =
+      GetPersonalSpendsUseCase(personalSpendRepository);
+  final addPersonalSpendUseCase =
+      AddPersonalSpendUseCase(personalSpendRepository);
+  final updatePersonalSpendUseCase =
+      UpdatePersonalSpendUseCase(personalSpendRepository);
+  final deletePersonalSpendUseCase =
+      DeletePersonalSpendUseCase(personalSpendRepository);
+  final getMonthlyRecordsUseCase =
+      GetMonthlyRecordsUseCase(monthlyRecordRepository);
+  final addMonthlyRecordUseCase =
+      AddMonthlyRecordUseCase(monthlyRecordRepository);
+  final clearMonthlyRecordsUseCase =
+      ClearMonthlyRecordsUseCase(monthlyRecordRepository);
 
   runApp(
     MyApp(
-        getSellersUseCase: getSellersUseCase,
-        addSellerUseCase: addSellerUseCase,
-        addCarPartUseCase: addCarPartUseCase,
-        updateCarPartUseCase: updateCarPartUseCase,
-        deleteSellerUseCase: deleteSellerUseCase,
-        getTransactionHistoryUseCase: getTransactionHistoryUseCase,
-        deleteCarPartUseCase: deleteCarPartUseCase,
-        updateSellerUseCase: updateSellerUseCase,
-        getDriversUseCase: getDriversUseCase,
-        addDriverUseCase: addDriverUseCase,
-        updateDriverUseCase: updateDriverUseCase,
-        deleteDriverUseCase: deleteDriverUseCase,
-        getPersonalSpendsUseCase: getPersonalSpendsUseCase,
-        addPersonalSpendUseCase: addPersonalSpendUseCase,
-        updatePersonalSpendUseCase: updatePersonalSpendUseCase,
-        deletePersonalSpendUseCase: deletePersonalSpendUseCase,
-        getMonthlyRecordsUseCase: getMonthlyRecordsUseCase,
-        addMonthlyRecordUseCase: addMonthlyRecordUseCase,
-        clearMonthlyRecordsUseCase: clearMonthlyRecordsUseCase,
-        sharedPreferences: sharedPreferences,
-      ),
-    
+      getSellersUseCase: getSellersUseCase,
+      addSellerUseCase: addSellerUseCase,
+      addCarPartUseCase: addCarPartUseCase,
+      updateCarPartUseCase: updateCarPartUseCase,
+      deleteSellerUseCase: deleteSellerUseCase,
+      getTransactionHistoryUseCase: getTransactionHistoryUseCase,
+      deleteCarPartUseCase: deleteCarPartUseCase,
+      updateSellerUseCase: updateSellerUseCase,
+      getDriversUseCase: getDriversUseCase,
+      addDriverUseCase: addDriverUseCase,
+      updateDriverUseCase: updateDriverUseCase,
+      deleteDriverUseCase: deleteDriverUseCase,
+      getPersonalSpendsUseCase: getPersonalSpendsUseCase,
+      addPersonalSpendUseCase: addPersonalSpendUseCase,
+      updatePersonalSpendUseCase: updatePersonalSpendUseCase,
+      deletePersonalSpendUseCase: deletePersonalSpendUseCase,
+      getMonthlyRecordsUseCase: getMonthlyRecordsUseCase,
+      addMonthlyRecordUseCase: addMonthlyRecordUseCase,
+      clearMonthlyRecordsUseCase: clearMonthlyRecordsUseCase,
+      sharedPreferences: sharedPreferences,
+    ),
   );
 }
 
@@ -148,6 +156,7 @@ class MyApp extends StatelessWidget {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+
     return MultiBlocProvider(
       providers: [
         BlocProvider(
@@ -188,25 +197,26 @@ class MyApp extends StatelessWidget {
         BlocProvider(
           create: (_) => LanguageCubit(sharedPreferences),
         ),
+        // ✅ Theme Cubit
+        BlocProvider(
+          create: (_) => ThemeCubit(sharedPreferences),
+        ),
       ],
-      child: BlocBuilder<LanguageCubit, Locale>(
-        builder: (context, locale) {
-            return ScreenUtilInit(
+      child: BlocBuilder<ThemeCubit, ThemeMode>(
+        builder: (context, themeMode) {
+          return ScreenUtilInit(
             designSize: const Size(360, 690),
             minTextAdapt: true,
             splitScreenMode: true,
-         child:   MaterialApp(
-            debugShowCheckedModeBanner: false,
-            color: Colors.white,
-            title: 'Store Management',
-            theme: ThemeData(
-              primarySwatch: Colors.blue,
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'Store Management',
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeMode,
+              home: const MainScreen(),
             ),
-            // locale: context.locale,
-            // supportedLocales: context.supportedLocales,
-            // localizationsDelegates: context.localizationDelegates,  
-            home: const MainScreen(),
-            ));
+          );
         },
       ),
     );
@@ -221,7 +231,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  final AuthService _authService = AuthService();  // Firebase Auth service
+  final AuthService _authService = AuthService();
 
   int _selectedIndex = 0;
 
@@ -234,7 +244,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    // Load drivers and personal spends when the app starts
+    // Load data when the app starts
     context.read<SellerCubit>().loadSellers();
     context.read<DriverCubit>().loadDrivers();
     context.read<PersonalSpendCubit>().loadPersonalSpends();
@@ -245,119 +255,164 @@ class _MainScreenState extends State<MainScreen> {
       _selectedIndex = index;
     });
   }
- 
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String?>(
-      future: _authService.getToken(),  // Firebase authentication token check
+      future: _authService.getToken(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: Center(
+              child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          );
         } else if (snapshot.hasData) {
           // User is logged in, show the app's main content
           return Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor:
+                Theme.of(context).scaffoldBackgroundColor, // ✅ Theme
             body: IndexedStack(
               index: _selectedIndex,
               children: _widgetOptions,
             ),
-            bottomNavigationBar: BottomNavigationBar(
-              backgroundColor: Colors.white,
-              
-              items: [
-                BottomNavigationBarItem(
-                  icon: CustomNavItem(
-                    icon: Icons.store,
-                    label: 'Sellers',
-                    isSelected: _selectedIndex == 0,
-                    onTap: () => _onItemTapped(0),
-                  ),
-                  label: '',
-                ),
-                BottomNavigationBarItem(
-                  icon: CustomNavItem(
-                    icon: Icons.directions_car,
-                    label: 'Drivers',
-                    isSelected: _selectedIndex == 1,
-                    onTap: () => _onItemTapped(1),
-                  ),
-                  label: '',
-                ),
-                BottomNavigationBarItem(
-                  icon: CustomNavItem(
-                    icon: Icons.account_balance_wallet,
-                    label: 'Personal',
-                    isSelected: _selectedIndex == 2,
-                    onTap: () => _onItemTapped(2),
-                  ),
-                  label: '',
-                ),
-              ],
-              currentIndex: _selectedIndex,
-              selectedItemColor: Colors.amber[800],
-              onTap: _onItemTapped,
-            ),
+            bottomNavigationBar: _buildBottomNavigationBar(), // ✅ Theme-aware
           );
         } else {
           // User is not logged in, show the authentication screen
-          return const LoginScreen();  // Your login screen
+          return const LoginScreen();
         }
       },
     );
   }
-}
 
-class CustomNavItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
+  // ✅ Theme-Aware Bottom Navigation Bar
+  Widget _buildBottomNavigationBar() {
+    return BlocBuilder<ThemeCubit, ThemeMode>(
+      builder: (context, themeMode) {
+        final isDark = themeMode == ThemeMode.dark;
 
-  const CustomNavItem({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: isSelected ? 64 : 40,
-            height: isSelected ? 32 : 40,
-            decoration: ShapeDecoration(
-              color: isSelected ? const Color(0xFFF2F2F2) : Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).bottomNavigationBarTheme.backgroundColor,
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withOpacity(0.3)
+                    : Colors.grey.withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
               ),
-            ),
-            child: Center(
-              child: Icon(
-                icon,
-                size: 24,
-                color: isSelected ? Colors.black : Colors.black54,
+            ],
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.store,
+                    label: 'Sellers',
+                    index: 0,
+                    isDark: isDark,
+                  ),
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.directions_car,
+                    label: 'Drivers',
+                    index: 1,
+                    isDark: isDark,
+                  ),
+                  _buildNavItem(
+                    context: context,
+                    icon: Icons.account_balance_wallet,
+                    label: 'Personal',
+                    index: 2,
+                    isDark: isDark,
+                  ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected
-                  ? const Color(0xFF191C1F)
-                  : const Color(0xFF4D4D4D),
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-            ),
-            overflow: TextOverflow.ellipsis,
+        );
+      },
+    );
+  }
+
+  // ✅ Individual Nav Item with Theme Support
+  Widget _buildNavItem({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required int index,
+    required bool isDark,
+  }) {
+    final isSelected = _selectedIndex == index;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onItemTapped(index),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ✅ Icon Container with Theme
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: isSelected ? 64 : 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (isDark
+                          ? Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.2)
+                          : const Color(0xFFF2F2F2))
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: isSelected
+                        ? (isDark
+                            ? Theme.of(context).colorScheme.primary
+                            : const Color(0xFF191C1F))
+                        : (isDark ? Colors.grey.shade400 : Colors.black54),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              // ✅ Label with Theme
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isSelected
+                      ? (isDark
+                          ? Theme.of(context).colorScheme.primary
+                          : const Color(0xFF191C1F))
+                      : (isDark
+                          ? Colors.grey.shade400
+                          : const Color(0xFF4D4D4D)),
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:elshaf3y_store/presentation/screens/payment_screen.dart';
+import 'package:elshaf3y_store/presentation/cubit/theme_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -42,17 +43,17 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
   final ReportService _reportService = ReportService();
 
   final ScrollController _scrollController = ScrollController();
-  bool _showFab = true; // ✅ NEW
+  bool _showFab = true;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll); // ✅ NEW
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _scrollController.dispose(); // ✅ NEW
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -68,97 +69,120 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 2,
-        centerTitle: true,
-        title: BlocBuilder<SellerCubit, SellerState>(
-          builder: (context, state) {
-            if (state is SellerLoaded) {
-              final updatedSeller =
-                  state.sellers.firstWhere((s) => s.id == widget.seller.id);
-              final carPartsForSelectedMonth =
-                  updatedSeller.carParts.where((carPart) {
-                return carPart.dateAdded.month == selectedMonth &&
-                    carPart.dateAdded.year == selectedYear;
-              }).toList();
+    return BlocBuilder<ThemeCubit, ThemeMode>(
+      builder: (context, themeMode) {
+        final isDark = themeMode == ThemeMode.dark;
 
-              double monthlyActualGain = 0.0;
-              for (var carPart in carPartsForSelectedMonth) {
-                monthlyActualGain += carPart.getActualGain();
-              }
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor, // ✅ Theme
+          appBar: AppBar(
+            backgroundColor:
+                Theme.of(context).appBarTheme.backgroundColor, // ✅ Theme
+            elevation: Theme.of(context).appBarTheme.elevation,
+            iconTheme: Theme.of(context).iconTheme, // ✅ Theme
+            centerTitle: true,
+            title: BlocBuilder<SellerCubit, SellerState>(
+              builder: (context, state) {
+                if (state is SellerLoaded) {
+                  final updatedSeller =
+                      state.sellers.firstWhere((s) => s.id == widget.seller.id);
+                  final carPartsForSelectedMonth =
+                      updatedSeller.carParts.where((carPart) {
+                    return carPart.dateAdded.month == selectedMonth &&
+                        carPart.dateAdded.year == selectedYear;
+                  }).toList();
 
-              return Column(
-                children: [
-                  Hero(
-                    tag: 'seller_${widget.seller.id}',
-                    child: Text(
-                      widget.seller.name,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear Gain: \$${monthlyActualGain.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: monthlyActualGain >= 0 ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              );
-            }
-            return const Text('Loading...');
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.table_chart, color: Colors.green),
-            tooltip: 'Export to Excel',
-            onPressed: _exportSellerToExcel,
+                  double monthlyActualGain = 0.0;
+                  for (var carPart in carPartsForSelectedMonth) {
+                    monthlyActualGain += carPart.getActualGain();
+                  }
+
+                  return Column(
+                    children: [
+                      Hero(
+                        tag: 'seller_${widget.seller.id}',
+                        child: Text(
+                          widget.seller.name,
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ), // ✅ Theme
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear Gain: \$${monthlyActualGain.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: monthlyActualGain >= 0
+                              ? (isDark ? Colors.green.shade300 : Colors.green)
+                              : (isDark
+                                  ? Colors.red.shade300
+                                  : Colors.red), // ✅ Theme
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+                return Text('Loading...',
+                    style: Theme.of(context).textTheme.titleLarge);
+              },
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.table_chart,
+                    color: isDark
+                        ? Colors.green.shade300
+                        : Colors.green), // ✅ Theme
+                tooltip: 'Export to Excel',
+                onPressed: _exportSellerToExcel,
+              ),
+              IconButton(
+                icon: Icon(Icons.picture_as_pdf,
+                    color:
+                        isDark ? Colors.red.shade300 : Colors.red), // ✅ Theme
+                tooltip: 'Export to PDF',
+                onPressed: _exportSellerToPDF,
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
-            tooltip: 'Export to PDF',
-            onPressed: _exportSellerToPDF,
+          body: Column(
+            children: [
+              _buildTopControls(isDark),
+              Expanded(child: _buildCarPartsList(isDark)),
+            ],
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildTopControls(),
-          Expanded(child: _buildCarPartsList()),
-        ],
-      ),
-      floatingActionButton: AnimatedSlide(
-        duration: const Duration(milliseconds: 300),
-        offset: _showFab ? Offset.zero : const Offset(0, 2),
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 300),
-          opacity: _showFab ? 1.0 : 0.0,
-          child: FloatingActionButton.extended(
-            onPressed: () {
-              _clearCarPartControllers();
-              tempSubItems.clear();
-              _showAddSaleDialog(context);
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Add Sale'),
-            backgroundColor: Colors.blue,
+          floatingActionButton: AnimatedSlide(
+            duration: const Duration(milliseconds: 300),
+            offset: _showFab ? Offset.zero : const Offset(0, 2),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _showFab ? 1.0 : 0.0,
+              child: FloatingActionButton.extended(
+                onPressed: () {
+                  _clearCarPartControllers();
+                  tempSubItems.clear();
+                  _showAddSaleDialog(context);
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Add Sale'),
+                backgroundColor:
+                    Theme.of(context).colorScheme.primary, // ✅ Theme
+                foregroundColor:
+                    Theme.of(context).colorScheme.onPrimary, // ✅ Theme
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildTopControls() {
+  Widget _buildTopControls(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(12.0),
-      color: Colors.white,
+      color: Theme.of(context).cardColor, // ✅ Theme
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -167,9 +191,12 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
             icon: const Icon(Icons.sort, size: 18),
             label: const Text('Sort'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black87,
-              side: const BorderSide(color: Colors.grey),
+              backgroundColor: Theme.of(context).cardColor, // ✅ Theme
+              foregroundColor:
+                  Theme.of(context).textTheme.bodyLarge?.color, // ✅ Theme
+              side: BorderSide(
+                  color:
+                      isDark ? Colors.grey.shade700 : Colors.grey), // ✅ Theme
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),
@@ -177,12 +204,17 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
+              border: Border.all(
+                  color:
+                      isDark ? Colors.grey.shade700 : Colors.grey), // ✅ Theme
               borderRadius: BorderRadius.circular(8),
+              color: Theme.of(context).cardColor, // ✅ Theme
             ),
             child: DropdownButton<int>(
               value: selectedMonth,
               underline: const SizedBox(),
+              dropdownColor: Theme.of(context).cardColor, // ✅ Theme
+              style: Theme.of(context).textTheme.bodyMedium, // ✅ Theme
               items: List.generate(12, (index) => index + 1)
                   .map((month) => DropdownMenuItem(
                         value: month,
@@ -196,12 +228,17 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey),
+              border: Border.all(
+                  color:
+                      isDark ? Colors.grey.shade700 : Colors.grey), // ✅ Theme
               borderRadius: BorderRadius.circular(8),
+              color: Theme.of(context).cardColor, // ✅ Theme
             ),
             child: DropdownButton<int>(
               value: selectedYear,
               underline: const SizedBox(),
+              dropdownColor: Theme.of(context).cardColor, // ✅ Theme
+              style: Theme.of(context).textTheme.bodyMedium, // ✅ Theme
               items: List.generate(5, (index) => DateTime.now().year - index)
                   .map((year) => DropdownMenuItem(
                         value: year,
@@ -216,7 +253,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
     );
   }
 
-  Widget _buildCarPartsList() {
+  Widget _buildCarPartsList(bool isDark) {
     return BlocBuilder<SellerCubit, SellerState>(
       builder: (context, state) {
         if (state is SellerLoaded) {
@@ -234,11 +271,18 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.inventory_2_outlined,
-                      size: 80, color: Colors.grey[300]),
+                      size: 80,
+                      color: isDark
+                          ? Colors.grey.shade700
+                          : Colors.grey[300]), // ✅ Theme
                   const SizedBox(height: 16),
                   Text(
                     'No sales for ${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    style: TextStyle(
+                        fontSize: 16,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey[600]), // ✅ Theme
                   ),
                 ],
               ),
@@ -246,27 +290,25 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
           }
 
           return ListView.builder(
-            controller: _scrollController, // ✅ ADD THIS
-            padding: const EdgeInsets.only(
-              left: 12,
-              right: 12,
-              top: 12,
-              bottom: 90,
-            ),
+            controller: _scrollController,
+            padding:
+                const EdgeInsets.only(left: 12, right: 12, top: 12, bottom: 90),
             itemCount: carPartsForSelectedMonth.length,
             itemBuilder: (context, index) {
               final carPart = carPartsForSelectedMonth[
                   carPartsForSelectedMonth.length - index - 1];
-              return _buildCarPartCard(carPart);
+              return _buildCarPartCard(carPart, isDark);
             },
           );
         }
-        return const Center(child: CircularProgressIndicator());
+        return Center(
+            child: CircularProgressIndicator(
+                color: Theme.of(context).colorScheme.primary));
       },
     );
   }
 
-  Widget _buildCarPartCard(CarPart carPart) {
+  Widget _buildCarPartCard(CarPart carPart, bool isDark) {
     final totalSellingPrice = carPart.getTotalSellingPrice();
     final totalPurchasePrice = carPart.getTotalPurchasePrice();
     final totalPaid = carPart.getTotalPayments();
@@ -277,7 +319,8 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12.0),
-      elevation: 2,
+      color: Theme.of(context).cardColor, // ✅ Theme
+      elevation: isDark ? 4 : 2, // ✅ Theme
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () => _showEditCarPartDialog(context, carPart),
@@ -293,10 +336,15 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.blue[50],
+                      color: isDark
+                          ? Colors.blue.shade900.withOpacity(0.3)
+                          : Colors.blue[50], // ✅ Theme
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.shopping_cart, color: Colors.blue),
+                    child: Icon(Icons.shopping_cart,
+                        color: isDark
+                            ? Colors.blue.shade300
+                            : Colors.blue), // ✅ Theme
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -305,13 +353,19 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                       children: [
                         Text(
                           carPart.name,
-                          style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                  fontWeight: FontWeight.bold), // ✅ Theme
                         ),
                         Text(
                           DateFormat('MMM dd, yyyy').format(carPart.dateAdded),
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey[600]), // ✅ Theme
                         ),
                       ],
                     ),
@@ -320,16 +374,25 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color:
-                          actualGain >= 0 ? Colors.green[50] : Colors.red[50],
+                      color: actualGain >= 0
+                          ? (isDark
+                              ? Colors.green.shade900.withOpacity(0.3)
+                              : Colors.green[50])
+                          : (isDark
+                              ? Colors.red.shade900.withOpacity(0.3)
+                              : Colors.red[50]), // ✅ Theme
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${actualGain >= 0 ? "+" : ""}\$${actualGain.toStringAsFixed(2)}',
                       style: TextStyle(
                         color: actualGain >= 0
-                            ? Colors.green[700]
-                            : Colors.red[700],
+                            ? (isDark
+                                ? Colors.green.shade300
+                                : Colors.green[700])
+                            : (isDark
+                                ? Colors.red.shade300
+                                : Colors.red[700]), // ✅ Theme
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -344,19 +407,29 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: isDark
+                      ? Colors.grey.shade900.withOpacity(0.3)
+                      : Colors.grey[50], // ✅ Theme
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[200]!),
+                  border: Border.all(
+                      color: isDark
+                          ? Colors.grey.shade700
+                          : Colors.grey[200]!), // ✅ Theme
                 ),
                 child: Column(
                   children: [
-                    _buildInfoRow('Main Item',
+                    _buildInfoRow(
+                        'Main Item',
                         '${carPart.quantity}x @ \$${carPart.price.toStringAsFixed(2)}',
+                        isDark,
                         bold: true),
                     if (carPart.purchasePrice != null)
-                      _buildInfoRow('Cost',
+                      _buildInfoRow(
+                          'Cost',
                           '\$${carPart.purchasePrice!.toStringAsFixed(2)}',
-                          color: Colors.orange),
+                          isDark,
+                          color:
+                              isDark ? Colors.orange.shade300 : Colors.orange),
                   ],
                 ),
               ),
@@ -367,9 +440,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue[25],
+                    color: isDark
+                        ? Colors.blue.shade900.withOpacity(0.2)
+                        : Colors.blue[25], // ✅ Theme
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue[100]!),
+                    border: Border.all(
+                        color: isDark
+                            ? Colors.blue.shade700
+                            : Colors.blue[100]!), // ✅ Theme
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,14 +455,20 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                       Row(
                         children: [
                           Icon(Icons.inventory_2,
-                              size: 16, color: Colors.blue[700]),
+                              size: 16,
+                              color: isDark
+                                  ? Colors.blue.shade300
+                                  : Colors.blue[700]), // ✅ Theme
                           const SizedBox(width: 6),
                           Text(
                             'Additional Items (${carPart.subItems.length})',
                             style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[700],
-                                fontSize: 13),
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? Colors.blue.shade300
+                                  : Colors.blue[700], // ✅ Theme
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
@@ -397,7 +481,9 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                 Expanded(
                                   child: Text(
                                     '• ${subItem.name} (${subItem.quantity}x)',
-                                    style: const TextStyle(fontSize: 13),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall, // ✅ Theme
                                   ),
                                 ),
                                 Column(
@@ -405,16 +491,21 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                   children: [
                                     Text(
                                       '\$${(subItem.price * subItem.quantity).toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                              fontWeight:
+                                                  FontWeight.bold), // ✅ Theme
                                     ),
                                     if (subItem.purchasePrice != null)
                                       Text(
                                         'Cost: \$${subItem.purchasePrice!.toStringAsFixed(2)}',
                                         style: TextStyle(
                                             fontSize: 11,
-                                            color: Colors.grey[600]),
+                                            color: isDark
+                                                ? Colors.grey.shade400
+                                                : Colors.grey[600]), // ✅ Theme
                                       ),
                                   ],
                                 ),
@@ -433,35 +524,47 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.grey[50]!, Colors.white],
+                    colors: isDark
+                        ? [
+                            Colors.grey.shade900.withOpacity(0.5),
+                            Colors.grey.shade800.withOpacity(0.3)
+                          ]
+                        : [Colors.grey[50]!, Colors.white], // ✅ Theme
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(
+                      color: isDark
+                          ? Colors.grey.shade700
+                          : Colors.grey[300]!), // ✅ Theme
                 ),
                 child: Column(
                   children: [
                     _buildInfoRow('Total Price',
-                        '\$${totalSellingPrice.toStringAsFixed(2)}',
+                        '\$${totalSellingPrice.toStringAsFixed(2)}', isDark,
                         bold: true),
                     _buildInfoRow('Total Cost',
-                        '\$${totalPurchasePrice.toStringAsFixed(2)}',
-                        color: Colors.orange),
+                        '\$${totalPurchasePrice.toStringAsFixed(2)}', isDark,
+                        color: isDark ? Colors.orange.shade300 : Colors.orange),
                     const Divider(height: 16),
-                    _buildInfoRow('Paid', '\$${totalPaid.toStringAsFixed(2)}',
-                        color: Colors.blue),
                     _buildInfoRow(
-                        'Owed', '\$${carPart.amountOwed.toStringAsFixed(2)}',
-                        color: Colors.red),
+                        'Paid', '\$${totalPaid.toStringAsFixed(2)}', isDark,
+                        color: isDark ? Colors.blue.shade300 : Colors.blue),
+                    _buildInfoRow('Owed',
+                        '\$${carPart.amountOwed.toStringAsFixed(2)}', isDark,
+                        color: isDark ? Colors.red.shade300 : Colors.red),
                     const Divider(height: 16),
                     _buildInfoRow('Potential Gain',
-                        '\$${potentialGain.toStringAsFixed(2)}',
-                        color: Colors.grey),
+                        '\$${potentialGain.toStringAsFixed(2)}', isDark,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey),
                     _buildInfoRow(
                       'Actual Gain',
                       '\$${actualGain.toStringAsFixed(2)}',
-                      color: actualGain >= 0 ? Colors.green : Colors.red,
+                      isDark,
+                      color: actualGain >= 0
+                          ? (isDark ? Colors.green.shade300 : Colors.green)
+                          : (isDark ? Colors.red.shade300 : Colors.red),
                       bold: true,
                       fontSize: 16,
                     ),
@@ -478,13 +581,18 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Payment Progress',
-                          style:
-                              TextStyle(fontSize: 12, color: Colors.grey[600])),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey[600])), // ✅ Theme
                       Text('${paymentPercentage.toStringAsFixed(1)}%',
                           style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.grey[700])),
+                              color: isDark
+                                  ? Colors.grey.shade300
+                                  : Colors.grey[700])), // ✅ Theme
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -493,9 +601,15 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     child: LinearProgressIndicator(
                       value: paymentPercentage / 100,
                       minHeight: 8,
-                      backgroundColor: Colors.grey[200],
+                      backgroundColor: isDark
+                          ? Colors.grey.shade800
+                          : Colors.grey[200], // ✅ Theme
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        paymentPercentage >= 100 ? Colors.green : Colors.blue,
+                        paymentPercentage >= 100
+                            ? (isDark ? Colors.green.shade300 : Colors.green)
+                            : (isDark
+                                ? Colors.blue.shade300
+                                : Colors.blue), // ✅ Theme
                       ),
                     ),
                   ),
@@ -509,8 +623,8 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   carPart.description,
                   style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[700],
-                      fontStyle: FontStyle.italic),
+                      color: isDark ? Colors.grey.shade400 : Colors.grey[700],
+                      fontStyle: FontStyle.italic), // ✅ Theme
                 ),
               ],
 
@@ -528,16 +642,20 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     ),
                     icon: const Icon(Icons.history, size: 12),
                     label: const Text('History'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                    style: TextButton.styleFrom(
+                        foregroundColor: isDark
+                            ? Colors.blue.shade300
+                            : Colors.blue), // ✅ Theme
                   ),
                   const SizedBox(width: 8),
-                  // ✅ NEW: Print Invoice Button
                   ElevatedButton.icon(
                     onPressed: () => _printInvoice(carPart),
                     icon: const Icon(Icons.receipt_long, size: 12),
                     label: const Text('Invoice'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
+                      backgroundColor: isDark
+                          ? Colors.purple.shade700
+                          : Colors.purple, // ✅ Theme
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
@@ -549,7 +667,9 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     icon: const Icon(Icons.payment, size: 12),
                     label: const Text('Pay'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: isDark
+                          ? Colors.green.shade700
+                          : Colors.green, // ✅ Theme
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
@@ -558,7 +678,10 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   const SizedBox(width: 8),
                   IconButton(
                     onPressed: () => _showDeleteCarPartDialog(context, carPart),
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    icon: Icon(Icons.delete_outline,
+                        color: isDark
+                            ? Colors.red.shade300
+                            : Colors.red), // ✅ Theme
                     tooltip: 'Delete',
                   ),
                 ],
@@ -570,7 +693,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value,
+  Widget _buildInfoRow(String label, String value, bool isDark,
       {Color? color, bool bold = false, double fontSize = 14}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -578,14 +701,18 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style:
-                  TextStyle(fontSize: fontSize - 1, color: Colors.grey[700])),
+              style: TextStyle(
+                  fontSize: fontSize - 1,
+                  color: isDark
+                      ? Colors.grey.shade400
+                      : Colors.grey[700])), // ✅ Theme
           Text(
             value,
             style: TextStyle(
               fontSize: fontSize,
               fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-              color: color ?? Colors.black87,
+              color: color ??
+                  (isDark ? Colors.grey.shade200 : Colors.black87), // ✅ Theme
             ),
           ),
         ],
@@ -601,12 +728,15 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
     carPartQuantityController.clear();
   }
 
+  // ✅ All dialogs now use Theme.of(context) for colors
   void _showAddSaleDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+
             // Calculate totals
             double mainTotal =
                 (double.tryParse(carPartPriceController.text) ?? 0) *
@@ -621,6 +751,8 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
             double grandCost = mainCost + subItemsCost;
 
             return Dialog(
+              backgroundColor:
+                  Theme.of(context).dialogBackgroundColor, // ✅ Theme
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16)),
               child: Container(
@@ -632,7 +764,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.blue,
+                        color: Theme.of(context).colorScheme.primary, // ✅ Theme
                         borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(16)),
                       ),
@@ -668,14 +800,24 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Main Item Section
-                            const Text('Main Item',
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text('Main Item',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                        fontWeight:
+                                            FontWeight.bold)), // ✅ Theme
                             const SizedBox(height: 12),
                             TextField(
                               controller: carPartNameController,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium, // ✅ Theme
                               decoration: InputDecoration(
                                 labelText: 'Car *',
+                                labelStyle: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium, // ✅ Theme
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8)),
                                 prefixIcon: const Icon(Icons.label),
@@ -687,8 +829,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: carPartPriceController,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium, // ✅ Theme
                                     decoration: InputDecoration(
                                       labelText: 'Selling Price *',
+                                      labelStyle: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium, // ✅ Theme
                                       border: OutlineInputBorder(
                                           borderRadius:
                                               BorderRadius.circular(8)),
@@ -706,8 +854,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: carPartQuantityController,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium, // ✅ Theme
                                     decoration: InputDecoration(
                                       labelText: 'Quantity *',
+                                      labelStyle: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium, // ✅ Theme
                                       border: OutlineInputBorder(
                                           borderRadius:
                                               BorderRadius.circular(8)),
@@ -725,8 +879,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             const SizedBox(height: 12),
                             TextField(
                               controller: carPartPurchasePriceController,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium, // ✅ Theme
                               decoration: InputDecoration(
                                 labelText: 'Purchase Cost',
+                                labelStyle: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium, // ✅ Theme
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8)),
                                 prefixIcon: const Icon(Icons.shopping_bag),
@@ -740,8 +900,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             const SizedBox(height: 12),
                             TextField(
                               controller: carPartDescriptionController,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium, // ✅ Theme
                               decoration: InputDecoration(
                                 labelText: 'Item Name (Optional)',
+                                labelStyle: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium, // ✅ Theme
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8)),
                                 prefixIcon: const Icon(Icons.description),
@@ -757,17 +923,22 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Additional Items',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold)),
+                                Text('Additional Items',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                            fontWeight:
+                                                FontWeight.bold)), // ✅ Theme
                                 ElevatedButton.icon(
                                   onPressed: () =>
                                       _showAddSubItemDialog(context, setState),
                                   icon: const Icon(Icons.add, size: 18),
                                   label: const Text('Add Item'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue,
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .primary, // ✅ Theme
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8)),
@@ -781,19 +952,30 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                               Container(
                                 padding: const EdgeInsets.all(24),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[100],
+                                  color: isDark
+                                      ? Colors.grey.shade900.withOpacity(0.3)
+                                      : Colors.grey[100], // ✅ Theme
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey[300]!),
+                                  border: Border.all(
+                                      color: isDark
+                                          ? Colors.grey.shade700
+                                          : Colors.grey[300]!), // ✅ Theme
                                 ),
                                 child: Center(
                                   child: Column(
                                     children: [
                                       Icon(Icons.inventory_2_outlined,
-                                          size: 48, color: Colors.grey[400]),
+                                          size: 48,
+                                          color: isDark
+                                              ? Colors.grey.shade600
+                                              : Colors.grey[400]), // ✅ Theme
                                       const SizedBox(height: 8),
                                       Text('No additional items',
                                           style: TextStyle(
-                                              color: Colors.grey[600])),
+                                              color: isDark
+                                                  ? Colors.grey.shade400
+                                                  : Colors
+                                                      .grey[600])), // ✅ Theme
                                     ],
                                   ),
                                 ),
@@ -801,8 +983,12 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             else
                               Container(
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey[300]!),
+                                  border: Border.all(
+                                      color: isDark
+                                          ? Colors.grey.shade700
+                                          : Colors.grey[300]!), // ✅ Theme
                                   borderRadius: BorderRadius.circular(8),
+                                  color: Theme.of(context).cardColor, // ✅ Theme
                                 ),
                                 child: Column(
                                   children:
@@ -814,38 +1000,56 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                         border: idx > 0
                                             ? Border(
                                                 top: BorderSide(
-                                                    color: Colors.grey[200]!))
-                                            : null,
+                                                    color: isDark
+                                                        ? Colors.grey.shade800
+                                                        : Colors.grey[200]!))
+                                            : null, // ✅ Theme
                                       ),
                                       child: ListTile(
                                         leading: CircleAvatar(
-                                          backgroundColor: Colors.blue[50],
+                                          backgroundColor: isDark
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withOpacity(0.2)
+                                              : Colors.blue[50], // ✅ Theme
                                           child: Text('${idx + 1}',
-                                              style: const TextStyle(
-                                                  color: Colors.blue)),
+                                              style: TextStyle(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary)), // ✅ Theme
                                         ),
                                         title: Text(subItem.name,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w500)),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                    fontWeight: FontWeight
+                                                        .w500)), // ✅ Theme
                                         subtitle: Text(
                                           '${subItem.quantity}x @ \$${subItem.price.toStringAsFixed(2)} ${subItem.purchasePrice != null ? "(Cost: \$${subItem.purchasePrice!.toStringAsFixed(2)})" : ""}',
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600]),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall, // ✅ Theme
                                         ),
                                         trailing: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
                                               '\$${(subItem.price * subItem.quantity).toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(
+                                                      fontWeight: FontWeight
+                                                          .bold), // ✅ Theme
                                             ),
                                             IconButton(
-                                              icon: const Icon(
-                                                  Icons.delete_outline,
-                                                  color: Colors.red,
-                                                  size: 20),
+                                              icon: Icon(Icons.delete_outline,
+                                                  color: isDark
+                                                      ? Colors.red.shade300
+                                                      : Colors.red,
+                                                  size: 20), // ✅ Theme
                                               onPressed: () {
                                                 setState(() {
                                                   tempSubItems.removeAt(idx);
@@ -866,30 +1070,57 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.blue[50],
+                                color: isDark
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withOpacity(0.1)
+                                    : Colors.blue[50], // ✅ Theme
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.blue[200]!),
+                                border: Border.all(
+                                    color: isDark
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withOpacity(0.3)
+                                        : Colors.blue[200]!), // ✅ Theme
                               ),
                               child: Column(
                                 children: [
-                                  _buildInfoRow('Main Item Total',
-                                      '\$${mainTotal.toStringAsFixed(2)}'),
+                                  _buildInfoRow(
+                                      'Main Item Total',
+                                      '\$${mainTotal.toStringAsFixed(2)}',
+                                      isDark),
                                   if (tempSubItems.isNotEmpty)
-                                    _buildInfoRow('Additional Items',
-                                        '\$${subItemsTotal.toStringAsFixed(2)}'),
+                                    _buildInfoRow(
+                                        'Additional Items',
+                                        '\$${subItemsTotal.toStringAsFixed(2)}',
+                                        isDark),
                                   const Divider(),
-                                  _buildInfoRow('Grand Total',
+                                  _buildInfoRow(
+                                      'Grand Total',
                                       '\$${grandTotal.toStringAsFixed(2)}',
-                                      bold: true, fontSize: 16),
-                                  _buildInfoRow('Total Cost',
+                                      isDark,
+                                      bold: true,
+                                      fontSize: 16),
+                                  _buildInfoRow(
+                                      'Total Cost',
                                       '\$${grandCost.toStringAsFixed(2)}',
-                                      color: Colors.orange),
+                                      isDark,
+                                      color: isDark
+                                          ? Colors.orange.shade300
+                                          : Colors.orange),
                                   _buildInfoRow(
                                     'Potential Gain',
                                     '\$${(grandTotal - grandCost).toStringAsFixed(2)}',
+                                    isDark,
                                     color: (grandTotal - grandCost) >= 0
-                                        ? Colors.green
-                                        : Colors.red,
+                                        ? (isDark
+                                            ? Colors.green.shade300
+                                            : Colors.green)
+                                        : (isDark
+                                            ? Colors.red.shade300
+                                            : Colors.red),
                                     bold: true,
                                   ),
                                 ],
@@ -904,9 +1135,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        border:
-                            Border(top: BorderSide(color: Colors.grey[200]!)),
+                        color: isDark
+                            ? Colors.grey.shade900
+                            : Colors.grey[50], // ✅ Theme
+                        border: Border(
+                            top: BorderSide(
+                                color: isDark
+                                    ? Colors.grey.shade800
+                                    : Colors.grey[200]!)), // ✅ Theme
                       ),
                       child: Row(
                         children: [
@@ -916,7 +1152,11 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                 tempSubItems.clear();
                                 Navigator.pop(context);
                               },
-                              child: const Text('Cancel'),
+                              child: Text('Cancel',
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary)), // ✅ Theme
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -929,10 +1169,9 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                     carPartQuantityController.text.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text(
-                                          'Please fill all required fields'),
-                                      backgroundColor: Colors.red,
-                                    ),
+                                        content: Text(
+                                            'Please fill all required fields'),
+                                        backgroundColor: Colors.red),
                                   );
                                   return;
                                 }
@@ -961,14 +1200,15 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
 
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content:
-                                        Text('✅ Sale created successfully'),
-                                    backgroundColor: Colors.green,
-                                  ),
+                                      content:
+                                          Text('✅ Sale created successfully'),
+                                      backgroundColor: Colors.green),
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .primary, // ✅ Theme
                                 foregroundColor: Colors.white,
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 16),
@@ -1001,7 +1241,10 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
     showDialog(
       context: context,
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return AlertDialog(
+          backgroundColor: Theme.of(context).dialogBackgroundColor, // ✅ Theme
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Row(
@@ -1009,13 +1252,17 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: isDark
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.2)
+                      : Colors.blue[50], // ✅ Theme
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.add_box, color: Colors.blue),
+                child: Icon(Icons.add_box,
+                    color: Theme.of(context).colorScheme.primary), // ✅ Theme
               ),
               const SizedBox(width: 12),
-              const Text('Add Item'),
+              Text('Add Item',
+                  style: Theme.of(context).textTheme.titleLarge), // ✅ Theme
             ],
           ),
           content: Column(
@@ -1023,8 +1270,10 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
             children: [
               TextField(
                 controller: nameController,
+                style: Theme.of(context).textTheme.bodyMedium, // ✅ Theme
                 decoration: InputDecoration(
                   labelText: 'Car *',
+                  labelStyle: Theme.of(context).textTheme.bodyMedium, // ✅ Theme
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8)),
                   prefixIcon: const Icon(Icons.inventory_2),
@@ -1037,8 +1286,11 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   Expanded(
                     child: TextField(
                       controller: priceController,
+                      style: Theme.of(context).textTheme.bodyMedium, // ✅ Theme
                       decoration: InputDecoration(
                         labelText: 'Price *',
+                        labelStyle:
+                            Theme.of(context).textTheme.bodyMedium, // ✅ Theme
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8)),
                         prefixIcon: const Icon(Icons.attach_money),
@@ -1051,8 +1303,11 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                   Expanded(
                     child: TextField(
                       controller: qtyController,
+                      style: Theme.of(context).textTheme.bodyMedium, // ✅ Theme
                       decoration: InputDecoration(
                         labelText: 'Qty *',
+                        labelStyle:
+                            Theme.of(context).textTheme.bodyMedium, // ✅ Theme
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8)),
                         prefixIcon: const Icon(Icons.numbers),
@@ -1066,8 +1321,10 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: costController,
+                style: Theme.of(context).textTheme.bodyMedium, // ✅ Theme
                 decoration: InputDecoration(
                   labelText: 'Cost (Optional)',
+                  labelStyle: Theme.of(context).textTheme.bodyMedium, // ✅ Theme
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8)),
                   prefixIcon: const Icon(Icons.price_change),
@@ -1080,7 +1337,9 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text('Cancel',
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary)), // ✅ Theme
             ),
             ElevatedButton(
               onPressed: () {
@@ -1110,7 +1369,8 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor:
+                    Theme.of(context).colorScheme.primary, // ✅ Theme
                 foregroundColor: Colors.white,
               ),
               child: const Text('Add Item'),
@@ -1137,6 +1397,8 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+
             // Calculate totals
             double mainTotal =
                 (double.tryParse(carPartPriceController.text) ?? 0) *
@@ -1151,6 +1413,8 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
             double grandCost = mainCost + subItemsCost;
 
             return Dialog(
+              backgroundColor:
+                  Theme.of(context).dialogBackgroundColor, // ✅ Theme
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16)),
               child: Container(
@@ -1197,14 +1461,24 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Main Item Section
-                            const Text('Main Item',
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text('Main Item',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                        fontWeight:
+                                            FontWeight.bold)), // ✅ Theme
                             const SizedBox(height: 12),
                             TextField(
                               controller: carPartNameController,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium, // ✅ Theme
                               decoration: InputDecoration(
                                 labelText: 'Car *',
+                                labelStyle: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium, // ✅ Theme
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8)),
                                 prefixIcon: const Icon(Icons.label),
@@ -1216,8 +1490,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: carPartPriceController,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium, // ✅ Theme
                                     decoration: InputDecoration(
                                       labelText: 'Selling Price *',
+                                      labelStyle: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium, // ✅ Theme
                                       border: OutlineInputBorder(
                                           borderRadius:
                                               BorderRadius.circular(8)),
@@ -1232,8 +1512,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: carPartQuantityController,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium, // ✅ Theme
                                     decoration: InputDecoration(
                                       labelText: 'Quantity *',
+                                      labelStyle: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium, // ✅ Theme
                                       border: OutlineInputBorder(
                                           borderRadius:
                                               BorderRadius.circular(8)),
@@ -1248,8 +1534,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             const SizedBox(height: 12),
                             TextField(
                               controller: carPartPurchasePriceController,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium, // ✅ Theme
                               decoration: InputDecoration(
                                 labelText: 'Purchase Cost',
+                                labelStyle: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium, // ✅ Theme
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8)),
                                 prefixIcon: const Icon(Icons.shopping_bag),
@@ -1260,8 +1552,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             const SizedBox(height: 12),
                             TextField(
                               controller: carPartDescriptionController,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium, // ✅ Theme
                               decoration: InputDecoration(
                                 labelText: 'Item Name (Optional)',
+                                labelStyle: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium, // ✅ Theme
                                 border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8)),
                                 prefixIcon: const Icon(Icons.description),
@@ -1277,17 +1575,22 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Additional Items',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold)),
+                                Text('Additional Items',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                            fontWeight:
+                                                FontWeight.bold)), // ✅ Theme
                                 ElevatedButton.icon(
                                   onPressed: () =>
                                       _showAddSubItemDialog(context, setState),
                                   icon: const Icon(Icons.add, size: 18),
                                   label: const Text('Add Item'),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue,
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .primary, // ✅ Theme
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8)),
@@ -1301,19 +1604,30 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                               Container(
                                 padding: const EdgeInsets.all(24),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[100],
+                                  color: isDark
+                                      ? Colors.grey.shade900.withOpacity(0.3)
+                                      : Colors.grey[100], // ✅ Theme
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey[300]!),
+                                  border: Border.all(
+                                      color: isDark
+                                          ? Colors.grey.shade700
+                                          : Colors.grey[300]!), // ✅ Theme
                                 ),
                                 child: Center(
                                   child: Column(
                                     children: [
                                       Icon(Icons.inventory_2_outlined,
-                                          size: 48, color: Colors.grey[400]),
+                                          size: 48,
+                                          color: isDark
+                                              ? Colors.grey.shade600
+                                              : Colors.grey[400]), // ✅ Theme
                                       const SizedBox(height: 8),
                                       Text('No additional items',
                                           style: TextStyle(
-                                              color: Colors.grey[600])),
+                                              color: isDark
+                                                  ? Colors.grey.shade400
+                                                  : Colors
+                                                      .grey[600])), // ✅ Theme
                                     ],
                                   ),
                                 ),
@@ -1321,8 +1635,12 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             else
                               Container(
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey[300]!),
+                                  border: Border.all(
+                                      color: isDark
+                                          ? Colors.grey.shade700
+                                          : Colors.grey[300]!), // ✅ Theme
                                   borderRadius: BorderRadius.circular(8),
+                                  color: Theme.of(context).cardColor, // ✅ Theme
                                 ),
                                 child: Column(
                                   children:
@@ -1334,39 +1652,57 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                         border: idx > 0
                                             ? Border(
                                                 top: BorderSide(
-                                                    color: Colors.grey[200]!))
-                                            : null,
+                                                    color: isDark
+                                                        ? Colors.grey.shade800
+                                                        : Colors.grey[200]!))
+                                            : null, // ✅ Theme
                                       ),
                                       child: ListTile(
                                         leading: CircleAvatar(
-                                          backgroundColor: Colors.blue[50],
+                                          backgroundColor: isDark
+                                              ? Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withOpacity(0.2)
+                                              : Colors.blue[50], // ✅ Theme
                                           child: Text('${idx + 1}',
-                                              style: const TextStyle(
-                                                  color: Colors.blue)),
+                                              style: TextStyle(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary)), // ✅ Theme
                                         ),
                                         title: Text(subItem.name,
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w500)),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyMedium
+                                                ?.copyWith(
+                                                    fontWeight: FontWeight
+                                                        .w500)), // ✅ Theme
                                         subtitle: Text(
                                           '${subItem.quantity}x @ \$${subItem.price.toStringAsFixed(2)} ${subItem.purchasePrice != null ? "(Cost: \$${subItem.purchasePrice!.toStringAsFixed(2)})" : ""}',
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600]),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall, // ✅ Theme
                                         ),
                                         trailing: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
                                               '\$${(subItem.price * subItem.quantity).toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodyMedium
+                                                  ?.copyWith(
+                                                      fontWeight: FontWeight
+                                                          .bold), // ✅ Theme
                                             ),
                                             // ✅ Edit Button
                                             IconButton(
-                                              icon: const Icon(
-                                                  Icons.edit_outlined,
-                                                  color: Colors.blue,
-                                                  size: 20),
+                                              icon: Icon(Icons.edit_outlined,
+                                                  color: isDark
+                                                      ? Colors.blue.shade300
+                                                      : Colors.blue,
+                                                  size: 20), // ✅ Theme
                                               onPressed: () =>
                                                   _showEditSubItemDialog(
                                                       context,
@@ -1376,10 +1712,11 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                             ),
                                             // ✅ Delete Button
                                             IconButton(
-                                              icon: const Icon(
-                                                  Icons.delete_outline,
-                                                  color: Colors.red,
-                                                  size: 20),
+                                              icon: Icon(Icons.delete_outline,
+                                                  color: isDark
+                                                      ? Colors.red.shade300
+                                                      : Colors.red,
+                                                  size: 20), // ✅ Theme
                                               onPressed: () {
                                                 setState(() {
                                                   tempSubItems.removeAt(idx);
@@ -1400,30 +1737,57 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.orange[50],
+                                color: isDark
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withOpacity(0.1)
+                                    : Colors.blue[50], // ✅ Theme
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.orange[200]!),
+                                border: Border.all(
+                                    color: isDark
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withOpacity(0.3)
+                                        : Colors.blue[200]!), // ✅ Theme
                               ),
                               child: Column(
                                 children: [
-                                  _buildInfoRow('Main Item Total',
-                                      '\$${mainTotal.toStringAsFixed(2)}'),
+                                  _buildInfoRow(
+                                      'Main Item Total',
+                                      '\$${mainTotal.toStringAsFixed(2)}',
+                                      isDark),
                                   if (tempSubItems.isNotEmpty)
-                                    _buildInfoRow('Additional Items',
-                                        '\$${subItemsTotal.toStringAsFixed(2)}'),
+                                    _buildInfoRow(
+                                        'Additional Items',
+                                        '\$${subItemsTotal.toStringAsFixed(2)}',
+                                        isDark),
                                   const Divider(),
-                                  _buildInfoRow('Grand Total',
+                                  _buildInfoRow(
+                                      'Grand Total',
                                       '\$${grandTotal.toStringAsFixed(2)}',
-                                      bold: true, fontSize: 16),
-                                  _buildInfoRow('Total Cost',
+                                      isDark,
+                                      bold: true,
+                                      fontSize: 16),
+                                  _buildInfoRow(
+                                      'Total Cost',
                                       '\$${grandCost.toStringAsFixed(2)}',
-                                      color: Colors.orange),
+                                      isDark,
+                                      color: isDark
+                                          ? Colors.orange.shade300
+                                          : Colors.orange),
                                   _buildInfoRow(
                                     'Potential Gain',
                                     '\$${(grandTotal - grandCost).toStringAsFixed(2)}',
+                                    isDark,
                                     color: (grandTotal - grandCost) >= 0
-                                        ? Colors.green
-                                        : Colors.red,
+                                        ? (isDark
+                                            ? Colors.green.shade300
+                                            : Colors.green)
+                                        : (isDark
+                                            ? Colors.red.shade300
+                                            : Colors.red),
                                     bold: true,
                                   ),
                                 ],
@@ -1438,9 +1802,14 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        border:
-                            Border(top: BorderSide(color: Colors.grey[200]!)),
+                        color: isDark
+                            ? Colors.grey.shade900
+                            : Colors.grey[50], // ✅ Theme
+                        border: Border(
+                            top: BorderSide(
+                                color: isDark
+                                    ? Colors.grey.shade800
+                                    : Colors.grey[200]!)), // ✅ Theme
                       ),
                       child: Row(
                         children: [
@@ -1450,7 +1819,11 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                 tempSubItems.clear();
                                 Navigator.pop(context);
                               },
-                              child: const Text('Cancel'),
+                              child: Text('Cancel',
+                                  style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary)), // ✅ Theme
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -1463,10 +1836,9 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                                     carPartQuantityController.text.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text(
-                                          'Please fill all required fields'),
-                                      backgroundColor: Colors.red,
-                                    ),
+                                        content: Text(
+                                            'Please fill all required fields'),
+                                        backgroundColor: Colors.red),
                                   );
                                   return;
                                 }
@@ -1497,10 +1869,9 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
 
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content:
-                                        Text('✅ Sale updated successfully'),
-                                    backgroundColor: Colors.green,
-                                  ),
+                                      content:
+                                          Text('✅ Sale updated successfully'),
+                                      backgroundColor: Colors.green),
                                 );
                               },
                               style: ElevatedButton.styleFrom(
@@ -1528,7 +1899,6 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
     );
   }
 
-// ✅ NEW: Edit Sub-Item Dialog
   void _showEditSubItemDialog(BuildContext context, StateSetter parentSetState,
       int index, SubItem subItem) {
     final nameController = TextEditingController(text: subItem.name);
@@ -1543,6 +1913,7 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Theme.of(context).dialogBackgroundColor, // ✅ Theme
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Row(

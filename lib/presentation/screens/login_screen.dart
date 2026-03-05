@@ -3,7 +3,6 @@
 // import 'package:flutter/material.dart';
 // import 'package:flutter/material.dart';
 
-
 // class AuthScreen extends StatefulWidget {
 //   @override
 //   _AuthScreenState createState() => _AuthScreenState();
@@ -308,8 +307,10 @@
 // }
 import 'package:elshaf3y_store/auth.dart';
 import 'package:elshaf3y_store/main.dart';
+import 'package:elshaf3y_store/presentation/cubit/theme_cubit.dart';
 import 'package:elshaf3y_store/presentation/screens/fields.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -328,7 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isButtonEnabled = false;
   bool _isLoading = false;
   String _status = '';
-final String? robotoFont = GoogleFonts.roboto().fontFamily;
+  final String? robotoFont = GoogleFonts.roboto().fontFamily;
 
   @override
   void initState() {
@@ -389,15 +390,17 @@ final String? robotoFont = GoogleFonts.roboto().fontFamily;
     );
     return result ?? false; // Default to false if dialog is dismissed
   }
-@override
-Widget build(BuildContext context) {
-  final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-  final isKeyboardOpen = bottomPadding > 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardOpen = bottomPadding > 0;
 
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor:
+            Theme.of(context).scaffoldBackgroundColor, // ✅ Use theme
         body: SafeArea(
           child: Column(
             children: [
@@ -411,84 +414,82 @@ Widget build(BuildContext context) {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                            Visibility(
-                        visible: !isKeyboardOpen,
-                      child:   Center(
-                          child: Padding(
-                            padding: EdgeInsets.only(bottom: 43.w),
-                            child: Wrap(
-                              direction: Axis.vertical,
-                              runAlignment: WrapAlignment.center,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                Image.asset(
-                                  'assets/logo.png',
-                                  width: 80.w,
-                                  height: 80.h,
-                                ),
-                                SizedBox(height: 10.0.h),
-                                Text(
-                                  'Nice to see you',
-                                  style: TextStyle(
-                                    fontSize: 24.0,
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: robotoFont,
-                                    color: const Color(0xFF333333),
+                        Visibility(
+                          visible: !isKeyboardOpen,
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: 43.w),
+                              child: Wrap(
+                                direction: Axis.vertical,
+                                runAlignment: WrapAlignment.center,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                alignment: WrapAlignment.center,
+                                children: [
+                                  Image.asset(
+                                    'assets/logo.png',
+                                    width: 80.w,
+                                    height: 80.h,
                                   ),
-                                ),
-                                SizedBox(height: 8.0.h),
-                                Text(
-                                  'Log in to continue',
-                                  style: TextStyle(
-                                    fontSize: 14.0.sp,
-                                    fontWeight: FontWeight.w400,
-                                    fontFamily: robotoFont,
-                                    color: const Color(0xFF666666),
+                                  SizedBox(height: 10.0.h),
+                                  Text(
+                                    'Nice to see you',
+                                    style: TextStyle(
+                                      fontSize: 24.0,
+                                      fontWeight: FontWeight.w700,
+                                      fontFamily: robotoFont,
+                                      color: const Color(0xFF333333),
+                                    ),
+                                  ),
+                                  SizedBox(height: 8.0.h),
+                                  Text(
+                                    'Log in to continue',
+                                    style: TextStyle(
+                                      fontSize: 14.0.sp,
+                                      fontWeight: FontWeight.w400,
+                                      fontFamily: robotoFont,
+                                      color: const Color(0xFF666666),
+                                    ),
+                                  ),
+                                ],
                               ),
-                                ),
-                              ],
                             ),
                           ),
                         ),
-                      ),
-                      if (isKeyboardOpen)
-                        Row(
-                          children: [
-                            Image.asset(
-                              'assets/logo.png',
-                              width: 55.w,
-                              height: 55.h,
-                            ),
-                            SizedBox(width: 15.0.w),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Nice to see you',
-                                  style: TextStyle(
-                                    fontSize: 16.0,
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: robotoFont,
-                                    color: const Color(0xFF333333),
+                        if (isKeyboardOpen)
+                          Row(
+                            children: [
+                              Image.asset(
+                                'assets/logo.png',
+                                width: 55.w,
+                                height: 55.h,
+                              ),
+                              SizedBox(width: 15.0.w),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Nice to see you',
+                                    style: TextStyle(
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.w700,
+                                      fontFamily: robotoFont,
+                                      color: const Color(0xFF333333),
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  'Log in to continue',
-                                  style: TextStyle(
-                                    fontSize: 12.0.sp,
-                                    fontWeight: FontWeight.w400,
-                                    fontFamily: robotoFont,
-                                    color: const Color(0xFF666666),
+                                  Text(
+                                    'Log in to continue',
+                                    style: TextStyle(
+                                      fontSize: 12.0.sp,
+                                      fontWeight: FontWeight.w400,
+                                      fontFamily: robotoFont,
+                                      color: const Color(0xFF666666),
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      SizedBox(height: 20.0.h),
-                           
-
+                                ],
+                              ),
+                            ],
+                          ),
+                        SizedBox(height: 20.0.h),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -535,6 +536,28 @@ Widget build(BuildContext context) {
                                 width: 22.w,
                                 height: 22.h,
                               ),
+                            ),
+                          ],
+                        ),
+                        // ✅ Add theme toggle in login screen (optional)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Theme: ',
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color)),
+                            BlocBuilder<ThemeCubit, ThemeMode>(
+                              builder: (context, themeMode) {
+                                return Switch(
+                                  value: themeMode == ThemeMode.dark,
+                                  onChanged: (value) {
+                                    context.read<ThemeCubit>().toggleTheme();
+                                  },
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -619,6 +642,7 @@ Widget build(BuildContext context) {
     );
   }
 }
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -663,7 +687,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final user = await _authService.register(email, password);
     setState(() {
       _isLoading = false;
-      _status = user != null ? 'Registration Successful' : 'Registration Failed';
+      _status =
+          user != null ? 'Registration Successful' : 'Registration Failed';
     });
 
     if (user != null) {
