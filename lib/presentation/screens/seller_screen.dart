@@ -431,47 +431,84 @@ class _SellerScreenState extends State<SellerScreen> {
               );
             },
             child: Card(
-              color: Theme.of(context).cardColor, // ✅ Theme color
+              color: Theme.of(context).cardColor,
               elevation: Theme.of(context).cardTheme.elevation ?? 2,
               shape: Theme.of(context).cardTheme.shape,
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(12.0),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Hero(
                       tag: 'seller_${seller.id}',
                       child: Icon(
                         Icons.person,
-                        size: 50,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary, // ✅ Theme color
+                        size: 40,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 16),
                     Text(
                       seller.name,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                          ), // ✅ Theme text
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}',
-                      style:
-                          Theme.of(context).textTheme.bodySmall, // ✅ Theme text
-                    ),
-                    Text(
-                      'Monthly Gain: \$${monthlyGain.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: monthlyGain >= 0 ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.bold,
                           ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Owed',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              Text(
+                                '\$${seller.getTotalOwed().toStringAsFixed(2)}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Gain',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              Text(
+                                '\$${monthlyGain.toStringAsFixed(2)}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: monthlyGain >= 0
+                                          ? Colors.green
+                                          : Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         IconButton(
                           icon: Icon(
@@ -481,20 +518,26 @@ class _SellerScreenState extends State<SellerScreen> {
                             color: seller.isPinned
                                 ? Colors.orange
                                 : Theme.of(context).iconTheme.color,
+                            size: 20,
                           ),
                           onPressed: () {
                             context.read<SellerCubit>().togglePinSeller(seller);
                           },
+                          tooltip: seller.isPinned ? 'Unpin' : 'Pin',
                         ),
                         IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.orange),
+                          icon: const Icon(Icons.edit,
+                              color: Colors.orange, size: 20),
                           onPressed: () =>
                               _showEditSellerDialog(context, seller),
+                          tooltip: 'Edit',
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
+                          icon: const Icon(Icons.delete,
+                              color: Colors.red, size: 20),
                           onPressed: () =>
                               _showDeleteSellerDialog(context, seller.id),
+                          tooltip: 'Delete',
                         ),
                       ],
                     ),
@@ -511,75 +554,22 @@ class _SellerScreenState extends State<SellerScreen> {
   // ✅ List View with Theme
   Widget _buildListView(List<Seller> sellers) {
     return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       itemCount: sellers.length,
       itemBuilder: (context, index) {
         final seller = sellers[index];
         final monthlyGain =
             seller.getMonthlyGainForMonth(selectedMonth, selectedYear);
 
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-          padding: const EdgeInsets.all(8.0),
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor, // ✅ Theme color
-            border: Border.all(
-                color: Theme.of(context).dividerColor), // ✅ Theme color
-            borderRadius: BorderRadius.circular(10.0),
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12.0),
+          color: Theme.of(context).cardColor,
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: ListTile(
-            leading: Hero(
-              tag: 'seller_${seller.id}',
-              child: Icon(
-                Icons.person,
-                color: Theme.of(context).colorScheme.primary, // ✅ Theme color
-              ),
-            ),
-            title: Text(
-              seller.name,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ), // ✅ Theme text
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Total Owed: \$${seller.getTotalOwed().toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.bodySmall, // ✅ Theme text
-                ),
-                Text(
-                  'Monthly Gain: \$${monthlyGain.toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: monthlyGain >= 0 ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    seller.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                    color: seller.isPinned
-                        ? Colors.orange
-                        : Theme.of(context).iconTheme.color,
-                  ),
-                  onPressed: () {
-                    context.read<SellerCubit>().togglePinSeller(seller);
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.orange),
-                  onPressed: () => _showEditSellerDialog(context, seller),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _showDeleteSellerDialog(context, seller.id),
-                ),
-              ],
-            ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
             onTap: () {
               Navigator.push(
                 context,
@@ -587,6 +577,237 @@ class _SellerScreenState extends State<SellerScreen> {
                     builder: (context) => SellerDetailScreen(seller: seller)),
               );
             },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Row
+                  Row(
+                    children: [
+                      // Pin Icon (if pinned)
+                      if (seller.isPinned)
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.push_pin,
+                            size: 16,
+                            color: Colors.orange,
+                          ),
+                        ),
+                      if (seller.isPinned) const SizedBox(width: 8),
+
+                      // Avatar
+                      Hero(
+                        tag: 'seller_${seller.id}',
+                        child: CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withOpacity(0.1),
+                          child: Icon(
+                            Icons.person,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Name
+                      Expanded(
+                        child: Text(
+                          seller.name,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
+                                  fontWeight: FontWeight.bold, fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+
+                      // Action Buttons (Compact)
+                      PopupMenuButton<String>(
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: Theme.of(context).iconTheme.color,
+                        ),
+                        onSelected: (value) {
+                          if (value == 'pin') {
+                            context.read<SellerCubit>().togglePinSeller(seller);
+                          } else if (value == 'edit') {
+                            _showEditSellerDialog(context, seller);
+                          } else if (value == 'delete') {
+                            _showDeleteSellerDialog(context, seller.id);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'pin',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  seller.isPinned
+                                      ? Icons.push_pin
+                                      : Icons.push_pin_outlined,
+                                  color: Colors.orange,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(seller.isPinned ? 'Unpin' : 'Pin'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit, color: Colors.blue, size: 20),
+                                SizedBox(width: 12),
+                                Text('Edit'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, color: Colors.red, size: 20),
+                                SizedBox(width: 12),
+                                Text('Delete'),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Financial Info Cards
+                  Row(
+                    children: [
+                      // Total Owed Card
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.account_balance_wallet,
+                                    size: 16,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Total Owed',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '\$${seller.getTotalOwed().toStringAsFixed(2)}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // Monthly Gain Card
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color:
+                                (monthlyGain >= 0 ? Colors.green : Colors.red)
+                                    .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    monthlyGain >= 0
+                                        ? Icons.trending_up
+                                        : Icons.trending_down,
+                                    size: 16,
+                                    color: monthlyGain >= 0
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Monthly Gain',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: monthlyGain >= 0
+                                              ? Colors.green
+                                              : Colors.red,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '\$${monthlyGain.toStringAsFixed(2)}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: monthlyGain >= 0
+                                          ? Colors.green
+                                          : Colors.red,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },
