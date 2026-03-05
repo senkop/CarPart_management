@@ -41,8 +41,11 @@ class SellerCubit extends Cubit<SellerState> {
     try {
       emit(SellerLoading());
       final sellers = await getSellersUseCase();
-      sellers
-          .sort((a, b) => b.isPinned ? 1 : -1); // Sort sellers by pinned state
+      // ✅ FIX: Pinned sellers should come FIRST (a.isPinned returns true = 1, false = 0)
+      sellers.sort((a, b) {
+        if (a.isPinned == b.isPinned) return 0;
+        return a.isPinned ? -1 : 1; // Pinned items first
+      });
       emit(SellerLoaded(sellers));
     } catch (e) {
       emit(SellerError(e.toString()));
@@ -54,9 +57,11 @@ class SellerCubit extends Cubit<SellerState> {
       seller.isPinned = !seller.isPinned;
       await updateSellerUseCase(seller);
       final updatedSellers = await getSellersUseCase();
-      updatedSellers
-          .sort((a, b) => b.isPinned ? 1 : -1); // Sort sellers by pinned state
-// Sort sellers by pinned state
+      // ✅ FIX: Same sorting logic
+      updatedSellers.sort((a, b) {
+        if (a.isPinned == b.isPinned) return 0;
+        return a.isPinned ? -1 : 1;
+      });
       emit(SellerLoaded(updatedSellers));
     }
   }
@@ -65,6 +70,11 @@ class SellerCubit extends Cubit<SellerState> {
     if (state is SellerLoaded) {
       await addSellerUseCase(seller);
       final updatedSellers = await getSellersUseCase();
+      // ✅ FIX: Apply sorting after add
+      updatedSellers.sort((a, b) {
+        if (a.isPinned == b.isPinned) return 0;
+        return a.isPinned ? -1 : 1;
+      });
       emit(SellerLoaded(updatedSellers));
     }
   }
@@ -73,6 +83,11 @@ class SellerCubit extends Cubit<SellerState> {
     if (state is SellerLoaded) {
       await addCarPartUseCase(sellerId, carPart);
       final updatedSellers = await getSellersUseCase();
+      // ✅ FIX: Apply sorting after add car part
+      updatedSellers.sort((a, b) {
+        if (a.isPinned == b.isPinned) return 0;
+        return a.isPinned ? -1 : 1;
+      });
       emit(SellerLoaded(updatedSellers));
     }
   }
@@ -81,6 +96,11 @@ class SellerCubit extends Cubit<SellerState> {
     if (state is SellerLoaded) {
       await updateCarPartUseCase(sellerId, carPart);
       final updatedSellers = await getSellersUseCase();
+      // ✅ FIX: Apply sorting after update
+      updatedSellers.sort((a, b) {
+        if (a.isPinned == b.isPinned) return 0;
+        return a.isPinned ? -1 : 1;
+      });
       emit(SellerLoaded(updatedSellers));
     }
   }
@@ -89,6 +109,11 @@ class SellerCubit extends Cubit<SellerState> {
     if (state is SellerLoaded) {
       await deleteSellerUseCase(sellerId);
       final updatedSellers = await getSellersUseCase();
+      // ✅ FIX: Apply sorting after delete
+      updatedSellers.sort((a, b) {
+        if (a.isPinned == b.isPinned) return 0;
+        return a.isPinned ? -1 : 1;
+      });
       emit(SellerLoaded(updatedSellers));
     }
   }
@@ -101,6 +126,12 @@ class SellerCubit extends Cubit<SellerState> {
         print('Cubit: Delete use case completed');
 
         final updatedSellers = await getSellersUseCase();
+        // ✅ FIX: Apply sorting after delete car part
+        updatedSellers.sort((a, b) {
+          if (a.isPinned == b.isPinned) return 0;
+          return a.isPinned ? -1 : 1;
+        });
+
         print(
             'Cubit: Fetched updated sellers, count: ${updatedSellers.length}');
 
@@ -118,39 +149,16 @@ class SellerCubit extends Cubit<SellerState> {
     }
   }
 
-  Future<void> getTransactionHistory(String sellerId) async {
-    try {
-      emit(SellerLoading());
-      final transactions = await getTransactionHistoryUseCase(sellerId);
-      emit(TransactionHistoryLoaded(transactions));
-    } catch (e) {
-      emit(SellerError(e.toString()));
-    }
-  }
-
   Future<void> updateSeller(Seller seller) async {
     if (state is SellerLoaded) {
       await updateSellerUseCase(seller);
       final updatedSellers = await getSellersUseCase();
+      // ✅ FIX: Apply sorting after update seller
+      updatedSellers.sort((a, b) {
+        if (a.isPinned == b.isPinned) return 0;
+        return a.isPinned ? -1 : 1;
+      });
       emit(SellerLoaded(updatedSellers));
-    }
-  }
-
-  Future<void> sortCarPartsByDate(String sellerId) async {
-    if (state is SellerLoaded) {
-      final sellers = (state as SellerLoaded).sellers;
-      final seller = sellers.firstWhere((s) => s.id == sellerId);
-      seller.carParts.sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
-      emit(SellerLoaded(sellers));
-    }
-  }
-
-  Future<void> sortCarPartsByPrice(String sellerId) async {
-    if (state is SellerLoaded) {
-      final sellers = (state as SellerLoaded).sellers;
-      final seller = sellers.firstWhere((s) => s.id == sellerId);
-      seller.carParts.sort((a, b) => b.price.compareTo(a.price));
-      emit(SellerLoaded(sellers));
     }
   }
 
@@ -162,7 +170,14 @@ class SellerCubit extends Cubit<SellerState> {
       final carPart = seller.carParts.firstWhere((cp) => cp.id == carPartId);
       carPart.payments.add(payment);
       await updateSellerUseCase(seller);
-      emit(SellerLoaded(sellers));
+
+      // ✅ FIX: Re-fetch and sort to maintain pin order
+      final updatedSellers = await getSellersUseCase();
+      updatedSellers.sort((a, b) {
+        if (a.isPinned == b.isPinned) return 0;
+        return a.isPinned ? -1 : 1;
+      });
+      emit(SellerLoaded(updatedSellers));
     }
   }
 
@@ -195,6 +210,53 @@ class SellerCubit extends Cubit<SellerState> {
       final updatedSellers =
           sellers.map((s) => s.id == sellerId ? seller : s).toList();
       emit(SellerLoaded(updatedSellers));
+    }
+  }
+
+  Future<void> sortCarPartsByDate(String sellerId) async {
+    if (state is SellerLoaded) {
+      final sellers = (state as SellerLoaded).sellers;
+      final sellerIndex = sellers.indexWhere((s) => s.id == sellerId);
+
+      if (sellerIndex != -1) {
+        final seller = sellers[sellerIndex];
+        // Sort car parts by date (newest first)
+        seller.carParts.sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
+
+        await updateSellerUseCase(seller);
+
+        final updatedSellers = await getSellersUseCase();
+        // ✅ Maintain pin order
+        updatedSellers.sort((a, b) {
+          if (a.isPinned == b.isPinned) return 0;
+          return a.isPinned ? -1 : 1;
+        });
+        emit(SellerLoaded(updatedSellers));
+      }
+    }
+  }
+
+  Future<void> sortCarPartsByPrice(String sellerId) async {
+    if (state is SellerLoaded) {
+      final sellers = (state as SellerLoaded).sellers;
+      final sellerIndex = sellers.indexWhere((s) => s.id == sellerId);
+
+      if (sellerIndex != -1) {
+        final seller = sellers[sellerIndex];
+        // Sort car parts by total selling price (highest first)
+        seller.carParts.sort((a, b) =>
+            b.getTotalSellingPrice().compareTo(a.getTotalSellingPrice()));
+
+        await updateSellerUseCase(seller);
+
+        final updatedSellers = await getSellersUseCase();
+        // ✅ Maintain pin order
+        updatedSellers.sort((a, b) {
+          if (a.isPinned == b.isPinned) return 0;
+          return a.isPinned ? -1 : 1;
+        });
+        emit(SellerLoaded(updatedSellers));
+      }
     }
   }
 

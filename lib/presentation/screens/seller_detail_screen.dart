@@ -629,9 +629,12 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
               ],
 
               // Action Buttons
+              // Action Buttons
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.end,
                 children: [
                   TextButton.icon(
                     onPressed: () => Navigator.push(
@@ -640,49 +643,61 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
                           builder: (context) =>
                               PaymentDetailsScreen(carPart: carPart)),
                     ),
-                    icon: const Icon(Icons.history, size: 12),
-                    label: const Text('History'),
+                    icon: const Icon(Icons.history, size: 16),
+                    label:
+                        const Text('History', style: TextStyle(fontSize: 14)),
                     style: TextButton.styleFrom(
-                        foregroundColor: isDark
-                            ? Colors.blue.shade300
-                            : Colors.blue), // ✅ Theme
+                      foregroundColor:
+                          isDark ? Colors.blue.shade300 : Colors.blue,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                   ),
-                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () => _printInvoice(carPart),
-                    icon: const Icon(Icons.receipt_long, size: 12),
-                    label: const Text('Invoice'),
+                    icon: const Icon(Icons.receipt_long, size: 16),
+                    label:
+                        const Text('Invoice', style: TextStyle(fontSize: 14)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark
-                          ? Colors.purple.shade700
-                          : Colors.purple, // ✅ Theme
+                      backgroundColor:
+                          isDark ? Colors.purple.shade700 : Colors.purple,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () => _showPaymentDialog(context, carPart),
-                    icon: const Icon(Icons.payment, size: 12),
-                    label: const Text('Pay'),
+                    icon: const Icon(Icons.payment, size: 16),
+                    label: const Text('Pay', style: TextStyle(fontSize: 14)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark
-                          ? Colors.green.shade700
-                          : Colors.green, // ✅ Theme
+                      backgroundColor:
+                          isDark ? Colors.green.shade700 : Colors.green,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      minimumSize: const Size(0, 32),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
-                  const SizedBox(width: 8),
                   IconButton(
                     onPressed: () => _showDeleteCarPartDialog(context, carPart),
                     icon: Icon(Icons.delete_outline,
-                        color: isDark
-                            ? Colors.red.shade300
-                            : Colors.red), // ✅ Theme
+                        color: isDark ? Colors.red.shade300 : Colors.red,
+                        size: 20),
                     tooltip: 'Delete',
+                    padding: const EdgeInsets.all(6),
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ],
               ),
