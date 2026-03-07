@@ -24,20 +24,32 @@ class CarPart {
   })  : payments = payments ?? [],
         subItems = subItems ?? []; // ✅ Default to empty list
 
-  // ✅ Calculate total selling price (including sub-items)
-  double getTotalSellingPrice() {
-    double mainPrice = price * quantity;
-    double subItemsTotal =
-        subItems.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
-    return mainPrice + subItemsTotal;
+  // ✅ FIX: Calculate total purchase price with quantities
+  double getTotalPurchasePrice() {
+    // Main item cost = unit price × quantity
+    double mainItemCost = (purchasePrice ?? 0) * quantity;
+
+    // Sub-items cost = sum of (unit price × quantity) for each sub-item
+    double subItemsCost = subItems.fold(
+      0.0,
+      (sum, item) => sum + ((item.purchasePrice ?? 0) * item.quantity),
+    );
+
+    return mainItemCost + subItemsCost;
   }
 
-  // ✅ Calculate total purchase cost (including sub-items)
-  double getTotalPurchasePrice() {
-    double mainCost = purchasePrice ?? 0.0;
-    double subItemsCost = subItems.fold(0.0,
-        (sum, item) => sum + ((item.purchasePrice ?? 0.0) * item.quantity));
-    return mainCost + subItemsCost;
+  // ✅ FIX: Calculate total selling price with quantities
+  double getTotalSellingPrice() {
+    // Main item price = unit price × quantity
+    double mainItemPrice = price * quantity;
+
+    // Sub-items price = sum of (unit price × quantity) for each sub-item
+    double subItemsPrice = subItems.fold(
+      0.0,
+      (sum, item) => sum + (item.price * item.quantity),
+    );
+
+    return mainItemPrice + subItemsPrice;
   }
 
   // ✅ Calculate total payments received
@@ -57,7 +69,7 @@ class CarPart {
     return totalPaid - totalCost;
   }
 
-  // ✅ Calculate potential gain (if fully paid)
+  // ✅ Potential Gain = Total Selling Price - Total Purchase Price
   double getPotentialGain() {
     return getTotalSellingPrice() - getTotalPurchasePrice();
   }

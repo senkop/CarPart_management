@@ -310,7 +310,19 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
 
   Widget _buildCarPartCard(CarPart carPart, bool isDark) {
     final totalSellingPrice = carPart.getTotalSellingPrice();
-    final totalPurchasePrice = carPart.getTotalPurchasePrice();
+
+    // ✅ FIX: Multiply main item purchase price by quantity
+    final mainItemCost = (carPart.purchasePrice ?? 0) * carPart.quantity;
+
+    // ✅ FIX: Calculate sub-items cost with quantity
+    final subItemsCost = carPart.subItems.fold(
+      0.0,
+      (sum, item) => sum + ((item.purchasePrice ?? 0) * item.quantity),
+    );
+
+    // ✅ Total purchase price = main item cost + sub-items cost
+    final totalPurchasePrice = mainItemCost + subItemsCost;
+
     final totalPaid = carPart.getTotalPayments();
     final actualGain = carPart.getActualGain();
     final potentialGain = carPart.getPotentialGain();
