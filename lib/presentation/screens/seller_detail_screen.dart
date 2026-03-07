@@ -266,23 +266,35 @@ class _SellerDetailScreenState extends State<SellerDetailScreen> {
           }).toList();
 
           if (carPartsForSelectedMonth.isEmpty) {
+            // ✅ FIX: Show FAB when list is empty
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!_showFab)
+                setState(() => _showFab = true); // ✅ Force FAB visible
+            });
+
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.inventory_2_outlined,
                       size: 80,
-                      color: isDark
-                          ? Colors.grey.shade700
-                          : Colors.grey[300]), // ✅ Theme
+                      color: isDark ? Colors.grey.shade700 : Colors.grey[300]),
                   const SizedBox(height: 16),
                   Text(
                     'No sales for ${DateFormat.MMMM().format(DateTime(0, selectedMonth))} $selectedYear',
                     style: TextStyle(
                         fontSize: 16,
-                        color: isDark
-                            ? Colors.grey.shade400
-                            : Colors.grey[600]), // ✅ Theme
+                        color:
+                            isDark ? Colors.grey.shade400 : Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 24),
+                  // ✅ BONUS: Add a hint to create first sale
+                  Text(
+                    'Tap the + button to add your first sale',
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey.shade500 : Colors.grey[500],
+                        fontStyle: FontStyle.italic),
                   ),
                 ],
               ),
